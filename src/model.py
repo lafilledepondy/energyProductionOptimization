@@ -24,7 +24,9 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         [data.accessPower1(0, i).cost()[t] for t in T]
         for i in I1]  # Cost_it[i][t]
     RefCost_ik = [
-        [float(data.accessCampaign(i, k).refuelingcost()) for k in range(len(data.accessPower2(i).Campaigns()))]
+        [float(data.accessCampaign(i, k).refuelingcost()) 
+            for k in range(len(data.accessPower2(i).Campaigns()))
+        ]
         for i in I2
     ]
     Pmax_1 = [
@@ -67,12 +69,12 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
 
     # ======= CONSTRAINTS =======
     # (2)
-    for t in T:
-        model.addConstr(
-            sum(p_it[i, t] for i in I2) 
-                            >= Dem_t[t] - sum(p_it[i, t] for i in I1),
-            name=f"Demand_constraint_t{t}"
-        )
+    # for t in T:
+    #     model.addConstr(
+    #         sum(p_it[i, t] for i in I2) 
+    #                         >= Dem_t[t] - sum(p_it[i, t] for i in I1),
+    #         name=f"Demand_constraint_t{t}"
+    #     )
     # (3)
     for t in T:
         for i in I1:
@@ -82,13 +84,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                 name=f"Pmax1_constraint_i{i}_t{t}"
             )
     # (4)
-    for t in T:
-        for i in I2:
-            model.addConstr(
-                p_it[i, t] 
-                        <= Pmax_2[i][t] * (1 - y_it[i, t]),
-                name=f"Pmax2_constraint_i{i}_t{t}"
-            )
+    # for t in T:
+    #     for i in I2:
+    #         model.addConstr(
+    #             p_it[i, t] 
+    #                     <= Pmax_2[i][t] * (1 - y_it[i, t]),
+    #             name=f"Pmax2_constraint_i{i}_t{t}"
+    #         )
     
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
