@@ -92,9 +92,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     end_time = time.time()
     runtime = end_time - start_time
 
-    # On vérifie si une solution existe (Optimal ou Feasible)
+    # On vérifie si une solution primale exploitable existe (optimale ou faisable)
     model_status = model.getModelStatus()
-    if model_status in (hp.HighsModelStatus.kOptimal, hp.HighsModelStatus.kFeasible):
+    primal_status = model.getInfo().primal_solution_status
+    if (
+        model_status == hp.HighsModelStatus.kOptimal
+        or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
+    ):
         obj_value = model.getObjectiveValue()
     else:
         obj_value = -1
