@@ -1,5 +1,10 @@
+from pathlib import Path
+
+from demo import *
+
+
 def main():
-    print("Hello, World!")
+    read_file()
 
 if __name__ == "__main__":
     main()    
