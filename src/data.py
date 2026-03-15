@@ -151,17 +151,17 @@ class alldata :
     def Power2(self):
         return self._Power2
     
-    def accessPower2(self, index):
-        return self.Power2()[index]
+    def accessPower2(self, index_powerplant2):
+        return self.Power2()[index_powerplant2]
     
-    def accessScenario(self, index):
-        return self.Scenario()[index]
+    def accessScenario(self, index_scenario):
+        return self.Scenario()[index_scenario]
     
-    def accessPower1(self, indexs, indexp):
-        return self.Scenario()[indexs].Power1()[indexp]
+    def accessPower1(self, index_scenario, index_powerplant1):
+        return self.Scenario()[index_scenario].Power1()[index_powerplant1]
     
-    def accessCampaign(self, indexp, indexc):
-        return self.Power2()[indexp].Campaigns()[indexc]
+    def accessCampaign(self, index_powerplant2, index_campaign):
+        return self.Power2()[index_powerplant2].Campaigns()[index_campaign]
     
     
 
