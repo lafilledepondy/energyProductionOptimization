@@ -9,6 +9,21 @@ class power1 :
         self._pmin = []
         self._pmax = []
         self._cost = []
+
+    def name(self):
+        return self._name
+    
+    def whichscnario(self):
+        return self._scenario
+    
+    def pmin(self):
+        return self._pmin
+    
+    def pmax(self):
+        return self._pmax
+    
+    def cost(self):
+        return self._cost
     
 class campaign :
     def __init__(self, index):
@@ -22,7 +37,7 @@ class campaign :
         self._refuelingcost = 0
 
 
-    def index(self):
+    def name(self):
         return self._name
 
     def earlieststop(self):
@@ -34,6 +49,18 @@ class campaign :
     def durationoutage(self):
         return self._durationoutage
     
+    def maxrefuel(self):
+        return self._maxrefuel
+    
+    def minrefuel(self):
+        return self._minrefuel
+    
+    def maxstock(self):
+        return self._maxstock
+    
+    def refuelingcost(self):
+        return self._refuelingcost
+    
 class scenario :
     def __init__(self, index):
         self._name = index
@@ -43,12 +70,14 @@ class scenario :
     def addPower1(self, power1):
         self._Power1.append(power1)
 
-
-    def index(self):
+    def name(self):
         return self._name
 
-    def nbdemands(self):
+    def demands(self):
         return self._demands
+    
+    def Power1(self):
+        return self._Power1
 
 
 class power2 :
@@ -61,6 +90,21 @@ class power2 :
     
     def addCampaign(self, campaign):
         self._Campaigns.append(campaign)
+
+    def name(self):
+        return  self._name
+    
+    def initialstock(self):
+        return  self._initialstock
+    
+    def minstock(self):
+        return  self._minstock
+    
+    def Campaigns(self):
+        return  self._Campaigns
+    
+    def pmax(self):
+        return self._pmax
 
 class alldata :
     def __init__(self, name):
@@ -80,6 +124,38 @@ class alldata :
 
     def addPower2(self, power2):
         self._Power2.append(power2)
+
+    def name(self):
+        return  self._name
+    
+    def timestep(self):
+        return  self._timestep
+    
+    def weeks(self):
+        return  self._weeks
+    
+    def nbcampaigns(self):
+        return  self._nbcampaigns
+    
+    def nbscenario(self):
+        return self._nbscenario
+    
+    def nbpower1(self):
+        return self._nbpower1
+    
+    def nbpower2(self):
+        return self._nbpower2
+    
+    def timestepduration(self):
+        return self._timestepduration
+    
+    def Scenario(self):
+        return self._Scenario
+    
+    def Power2(self):
+        return self._Power2
+    
+    
 
 
         
