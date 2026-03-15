@@ -1,7 +1,5 @@
 import sys
 
-
-    
 class power1 :
     def __init__(self, index, S):
         self._name = index
@@ -35,7 +33,6 @@ class campaign :
         self._minrefuel = 0 
         self._maxstock = 0 
         self._refuelingcost = 0
-
 
     def name(self):
         return self._name
@@ -78,7 +75,6 @@ class scenario :
     
     def Power1(self):
         return self._Power1
-
 
 class power2 :
     def __init__(self, index):
@@ -154,6 +150,18 @@ class alldata :
     
     def Power2(self):
         return self._Power2
+    
+    def accessPower2(self, index):
+        return self.Power2()[index]
+    
+    def accessScenario(self, index):
+        return self.Scenario()[index]
+    
+    def accessPower1(self, indexs, indexp):
+        return self.Scenario()[indexs].Power1()[indexp]
+    
+    def accessCampaign(self, indexp, indexc):
+        return self.Power2()[indexp].Campaigns()[indexc]
     
     
 
