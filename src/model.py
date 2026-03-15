@@ -1,7 +1,110 @@
 import time
+import highspy as hp
+
+from solution import Solution
+from data import Readingfile
 
 
-def runMILPModel(data, toPrint, timeLimit, solverName):
+def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
+    # ======= MODEL =======
+    model = hp.Highs()
+    model.setOptionValue('time_limit', timeLimit)
+    model.setOptionValue('output_flag', outputFlag)
+
+    # ======= DONNEES =======
+    I1 = range(data.nbpower1())
+    I2 = range(data.nbpower2())
+    W = range(data.weeks())
+    T = range(data.timestep())
+    K_i = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+
+    Dem_t = data.accessScenario(0).demands()
+    Cost_it = [
+        [data.accessPower1(0, i).cost()[t] for t in T]
+        for i in I1]  # Cost_it[i][t]
+    # RefCost_i = [data.accessPower2(i)Campaigns().refuelingcost() for i in I2]     TODO: problem with indices
+    Pmax_1 = [
+        [data.accessPower1(0, i).pmax()[t] for t in T]
+        for i in I1]  # Type 1 units: Pmax_1[i][t]
+    Pmax_2 = [
+        [data.accessPower2(i).pmax()[t] for t in T]
+        for i in I2]  # Type 2 units: Pmax_2[i][t]
+    # Rmax
+    # Smax
+    # Sth_min
+    # X_i1
+    D_t = data.timestepduration()
+    # Da_ik
+
+    # ======= VARIABLES =======
+    # y_it
+    y_it = model.addVariables(I2, T, 
+                             type=hp.HighsVarType.kInteger, 
+                             lb=0, ub=1, 
+                             name_prefix=f"y_{{i}}_{{t}}")
+    # p_it
+    p_it = model.addVariables(list(I1) + list(I2), T,
+                            type=hp.HighsVarType.kContinuous,
+                            lb=0,
+                            name_prefix=f"p_{{i}}_{{t}}")    
+    
+    # r_it TODO: indices is worng !!!!!!!!!!!!!!!!!!
+    r_it = model.addVariables(I2, K_i,
+                            type=hp.HighsVarType.kContinuous,
+                            lb=0,
+                            name_prefix=f"r_{{i}}_{{k}}")
+
+    # ======= OBJECTIVE =======
+    model.setObjective(
+        sum(Cost_it[i][t] * p_it[i, t] * D_t[t] for i in I1 for t in T)
+        # + sum(RefCost_i[i] * r_it[i, k] for i in I2 for k in K_i) TODO
+        , sense=hp.ObjSense.kMinimize
+    )
+
+    # ======= CONSTRAINTS =======
+    # (2)
+    for t in T:
+        model.addConstr(
+            sum(p_it[i, t] for i in I2) 
+                            >= Dem_t[t] - sum(p_it[i, t] for i in I1),
+            name=f"Demand_constraint_t{t}"
+        )
+    # (3)
+    for t in T:
+        for i in I1:
+            model.addConstr(
+                p_it[i, t] 
+                        <= Pmax_1[i][t],
+                name=f"Pmax1_constraint_i{i}_t{t}"
+            )
+    # (4)
+    for t in T:
+        for i in I2:
+            model.addConstr(
+                p_it[i, t] 
+                        <= Pmax_2[i][t] * (1 - y_it[i, t]),
+                name=f"Pmax2_constraint_i{i}_t{t}"
+            )
+    
+    # ===== EXTRACT SOLUTION =====
+    start_time = time.time()
+    status = model.optimize()
+    end_time = time.time()
+    runtime = end_time - start_time
+
+    # On vérifie si une solution existe (Optimal ou Feasible)
+    model_status = model.getModelStatus()
+    if model_status in (hp.HighsModelStatus.kOptimal, hp.HighsModelStatus.kFeasible):
+        obj_value = model.getObjectiveValue()
+    else:
+        obj_value = -1
+
+    return Solution(model.modelStatusToString(model_status), 
+                    obj_value, 
+                    model.getInfo().mip_dual_bound, runtime)
+
+
+def runMILPModel_2(data: Readingfile, outputFlag: bool, timeLimit: float):
     # ======= VARIABLES =======
 
 
@@ -12,36 +115,9 @@ def runMILPModel(data, toPrint, timeLimit, solverName):
 
 
     # ======= MODEL =======
-    solver = pyo.SolverFactory(solverName)
-    
-    # Réglage spécifique pour HiGHS (via appsi)
-    if solverName == "appsi_highs":
-        solver.options['time_limit'] = timeLimit
-    else:
-        solver.options['time_limit'] = timeLimit
-    
-    start_time = time.time()
 
-    # tee=True est la CLÉ pour que le log contienne les bornes
-    results = solver.solve(model, tee=True) 
-    solve_time = time.time() - start_time
-
-    status = results.solver.status
     
     # ===== EXTRACT SOLUTION =====
-    sectors = []
-    # On vérifie si une solution existe (Optimal ou Feasible)
-    if status == SolverStatus.ok or status == SolverStatus.warning:
-        for i in range(H):
-            for j in range(W):
-                try:
-                    if pyo.value(model.x[i, j]) > 0.5:
-                        sectors.append((i, j))
-                except ValueError: # Au cas où la variable n'a pas de valeur
-                    continue
-        obj_value = pyo.value(model.obj)
-    else:
-        obj_value = -1
-
-    # On retourne UNIQUEMENT les 4 arguments de votre classe
-    return Solution(sectors, obj_value, solve_time, status)
+ 
+    # return Solution(status, obj_value, dualBound, runtime)
+    pass
