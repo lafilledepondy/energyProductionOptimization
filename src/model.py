@@ -17,12 +17,16 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     W = range(data.weeks())
     T = range(data.timestep())
     K_i = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+    IK = [(i, k) for i in I2 for k in K_i[i]]
 
     Dem_t = data.accessScenario(0).demands()
     Cost_it = [
         [data.accessPower1(0, i).cost()[t] for t in T]
         for i in I1]  # Cost_it[i][t]
-    # RefCost_i = [data.accessPower2(i)Campaigns().refuelingcost() for i in I2]     TODO: problem with indices
+    RefCost_ik = [
+        [float(data.accessCampaign(i, k).refuelingcost()) for k in range(len(data.accessPower2(i).Campaigns()))]
+        for i in I2
+    ]
     Pmax_1 = [
         [data.accessPower1(0, i).pmax()[t] for t in T]
         for i in I1]  # Type 1 units: Pmax_1[i][t]
@@ -48,16 +52,16 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                             lb=0,
                             name_prefix=f"p_{{i}}_{{t}}")    
     
-    # r_it TODO: indices is worng !!!!!!!!!!!!!!!!!!
-    r_it = model.addVariables(I2, K_i,
+    # r_it indexed on existing campaigns only: (i, k)
+    r_it = model.addVariables(IK,
                             type=hp.HighsVarType.kContinuous,
                             lb=0,
-                            name_prefix=f"r_{{i}}_{{k}}")
+                            name_prefix=f"r_{{ik}}")
 
     # ======= OBJECTIVE =======
     model.setObjective(
         sum(Cost_it[i][t] * p_it[i, t] * D_t[t] for i in I1 for t in T)
-        # + sum(RefCost_i[i] * r_it[i, k] for i in I2 for k in K_i) TODO
+        + sum(RefCost_ik[i][k] * r_it[i, k] for i in I2 for k in K_i[i])
         , sense=hp.ObjSense.kMinimize
     )
 

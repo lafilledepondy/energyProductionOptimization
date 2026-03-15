@@ -285,7 +285,7 @@ def Readingfile(dataFilePath):
                         duree = ligne.split()[1:]
                         n = len(duree) 
                         for i in range(n):
-                            p2._Campaigns[i]._refuelingcost = duree[i]
+                            p2._Campaigns[i]._refuelingcost = float(duree[i])
                         data.addPower2(p2)
                         
 
