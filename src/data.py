@@ -1,5 +1,5 @@
 import sys
-import re
+
 
     
 class power1 :
