@@ -30,24 +30,18 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         ]
         for i in I2
     ]
-
-    
-
     Pmax_1 = [
         [data.accessPower1(0, i).pmax()[t] for t in T]
         for i in I1]  # Type 1 units: Pmax_1[i][t]
     Pmax_2 = [
         [data.accessPower2(i).pmax()[t] for t in T]
         for i in I2]  # Type 2 units: Pmax_2[i][t]
-    
     # Rmax
     # Smax
     # Sth_min
     Sth_min = [data.accessPower2(i).minstock() for i in I2]
     # X_i1
     X_i = [data.accessPower2(i).initialstock() for i in I2]  
-
-
     D_t = data.timestepduration()
     # Da_ik
 
@@ -62,8 +56,14 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     #                         type=hp.HighsVarType.kContinuous,
     #                         lb=0,
     #                         name_prefix=f"p_{{i}}_{{t}}")    
-    p1_it = model.addVariables(I1, T,type=hp.HighsVarType.kContinuous, lb=0,name_prefix=f"p_{{i}}_{{t}}")  
-    p2_it = model.addVariables(I2, T,type=hp.HighsVarType.kContinuous, lb=0,name_prefix=f"p_{{i}}_{{t}}")  
+    p1_it = model.addVariables(I1, T, 
+                            type=hp.HighsVarType.kContinuous, 
+                            lb=0,
+                            name_prefix=f"p_{{i}}_{{t}}")  
+    p2_it = model.addVariables(I2, T, 
+                            type=hp.HighsVarType.kContinuous, 
+                            lb=0,
+                            name_prefix=f"p_{{i}}_{{t}}")  
     
     # r_it indexed on existing campaigns only: (i, k)
     r_ik = model.addVariables(IK,
@@ -86,7 +86,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     # ======= OBJECTIVE =======
     model.setObjective(
         sum(Cost_it[i][t] * p1_it[i, t] * D_t[t] for i in I1 for t in T)
-        #+ sum(RefCost_ik[i][0] * r_it[i, t]*x_ik[i,k] for i in I2 for t in T for k in K_i[i]) 
         + sum(RefCost_ik[i][k] * r_ik[i,k] for i in I2 for k in K_i[i])
         , sense=hp.ObjSense.kMinimize
     )
@@ -134,10 +133,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                 name=f"Stock_min_i{i}_t{t}"
             )
         
- 
-
-    
-
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
     status = model.optimize()
