@@ -66,7 +66,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                             name_prefix=f"p_{{i}}_{{t}}")  
     
     # r_it indexed on existing campaigns only: (i, k)
-    r_ik = model.addVariables(IK,
+    r_it = model.addVariables(T,
                           type=hp.HighsVarType.kContinuous,
                           lb=0,
                           name_prefix="r_{i}_{k}")
@@ -120,12 +120,12 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         for t in T:
             if t == 0:
                 model.addConstr(
-                    s_it[i,t] == X_i[i] - p2_it[i,t]*D_t[t] + sum(r_ik[i,k] for k in K_i[i]),
+                    s_it[i,t] == X_i[i] - p2_it[i,t]*D_t[t],
                     name=f"Stock_init_i{i}_t{t}"
                 )
             else:
                 model.addConstr(
-                    s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + sum(r_ik[i,k] for k in K_i[i]),
+                    s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + r_it,
                     name=f"Stock_i{i}_t{t}"
                 )
             model.addConstr(
@@ -154,8 +154,12 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         
         p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in I1 for t in T}
         p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in I2 for t in T}
+        y_solution = {(i,t): model.variableValue(y_it[i,t]) for i in I2 for t in T}
         r_solution = {(i,k): model.variableValue(r_ik[i,k]) for i in I2 for k in K_i[i]}
-        s_solution  = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
+        s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
+        x_solution = {(i,t,k): model.variableValue(x_itk[i,t,k]) for i in I2 for k in K_i[i] for t in k}
+
+        sol = [p1_solution, p2_solution, y_solution, r_solution, s_solution]
        
 
         # # ===== Pour verif =====
@@ -190,10 +194,11 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
 
     else:
         obj_value = -1
+        sol = [0,0,0,0,0]
 
     return Solution(model.modelStatusToString(model_status), 
                     obj_value, 
-                    model.getInfo().mip_dual_bound, runtime)
+                    model.getInfo().mip_dual_bound, runtime, sol)
 
 
 def runMILPModel_2(data: Readingfile, outputFlag: bool, timeLimit: float):
