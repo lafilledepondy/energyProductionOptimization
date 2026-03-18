@@ -267,7 +267,7 @@ def Readingfile(dataFilePath):
                         for i in range(n):
                             index2 = "campaign_" + str(i)
                             camp = campaign(index2)
-                            camp._durationoutage = int(duree[i] )
+                            camp._durationoutage = int(duree[i])*7
                             p2.addCampaign(camp)
                                
                         
@@ -314,10 +314,10 @@ def Readingfile(dataFilePath):
                         c = int(ligne.split()[1])
                     if ligne.startswith("earliest_stop_time") :
                         e = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._earlieststop = e
+                        data._Power2[p]._Campaigns[c]._earlieststop = (e-1)*7
                     if ligne.startswith("latest_stop_time") :
                         l = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._lateststop = l
+                        data._Power2[p]._Campaigns[c]._lateststop = (e-1)*7 + 6
             
             return data
                     
