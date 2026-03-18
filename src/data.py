@@ -317,7 +317,7 @@ def Readingfile(dataFilePath):
                         data._Power2[p]._Campaigns[c]._earlieststop = (e-1)*7
                     if ligne.startswith("latest_stop_time") :
                         l = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._lateststop = (e-1)*7 + 6
+                        data._Power2[p]._Campaigns[c]._lateststop = (l-1)*7 + 6
             
             return data
                     
