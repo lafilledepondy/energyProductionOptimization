@@ -2,7 +2,7 @@ from pathlib import Path
 
 from data import Readingfile
 from model import runMILPModel_1, runMILPModel_2
-from solution import recordSolution, Solution
+from solution import Solution
 
 def read_file_demo():
     # TODO: properly 
@@ -28,7 +28,8 @@ def model_demo():
 
     data = Readingfile(str(data_file))
 
+
     sol = runMILPModel_1(data, outputFlag=True, timeLimit=60)
     
-    print(f"Solution: {sol.status}, Objective: {sol.value()}")
-    print(f"Dual Bound value: {sol.dualBound}, Runtime: {sol.runtime} seconds")
+    print(f"Solution: {sol._status}, Objective: {sol.value()}")
+    print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")

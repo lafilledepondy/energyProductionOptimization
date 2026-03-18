@@ -39,11 +39,11 @@ def main():
     )
 
     # === Uncomment to run the GUI or the solver with command-line arguments ===
-    pseudo_main()
+    # pseudo_main()
 
     # === Uncomment to run a specific demo === 
     # read_file()
-    # model_demo()
+    model_demo()
 
 if __name__ == "__main__":
     main()    

@@ -102,6 +102,17 @@ class power2 :
     def pmax(self):
         return self._pmax
 
+    # TODO A REVOIR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    def maxrefuel(self):
+        if not self._Campaigns:
+            return 0
+        return max(float(c.maxrefuel()) for c in self._Campaigns)
+
+    def maxstock(self):
+        if not self._Campaigns:
+            return 0
+        return max(float(c.maxstock()) for c in self._Campaigns)
+
 class alldata :
     def __init__(self, name):
         self._name = name
@@ -176,6 +187,8 @@ def Readingfile(dataFilePath):
         compte = 0
         type1 = -1
         type2 = -1
+        p = 0
+        c = 0
         
         with open(dataFilePath, 'r') as dataFile:
             import os
@@ -264,14 +277,14 @@ def Readingfile(dataFilePath):
                         n = len(duree) 
                         
                         for i in range(n):  
-                            p2._Campaigns[i]._maxrefuel = duree[i] 
+                            p2._Campaigns[i]._maxrefuel = float(duree[i]) 
                         
                         
                     if ligne.startswith("min_refuel") :
                         duree = ligne.split()[1:]
                         n = len(duree) 
                         for i in range(n):
-                            p2._Campaigns[i]._minrefuel = duree[i]
+                            p2._Campaigns[i]._minrefuel = float(duree[i])
                     if ligne.startswith("current_campaign_stock_threshold"):
                         p2._minstock = int(ligne.split()[1])
                     if ligne.startswith("pmax"):
@@ -280,7 +293,7 @@ def Readingfile(dataFilePath):
                         duree = ligne.split()[1:]
                         n = len(duree) 
                         for i in range(n):
-                            p2._Campaigns[i]._maxstock = duree[i]
+                            p2._Campaigns[i]._maxstock = float(duree[i])
                     if ligne.startswith("refueling_cost") :
                         duree = ligne.split()[1:]
                         n = len(duree) 
@@ -293,6 +306,8 @@ def Readingfile(dataFilePath):
                     actuel = "type 13"
                     p = 0
                     c = 0
+
+                if actuel == "type 13":
                     if ligne.startswith("powerplant") :
                         p = int(ligne.split()[1])
                     if ligne.startswith("campaign") :
@@ -300,9 +315,9 @@ def Readingfile(dataFilePath):
                     if ligne.startswith("earliest_stop_time") :
                         e = int(ligne.split()[1])
                         data._Power2[p]._Campaigns[c]._earlieststop = e
-                    if ligne.startswith("earliest_stop_time") :
-                        e = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._lateststop = e 
+                    if ligne.startswith("latest_stop_time") :
+                        l = int(ligne.split()[1])
+                        data._Power2[p]._Campaigns[c]._lateststop = l
             
             return data
                     

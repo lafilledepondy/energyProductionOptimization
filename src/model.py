@@ -13,12 +13,24 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     model.setOptionValue('output_flag', outputFlag)
 
     # ======= DONNEES =======
-    I1 = range(data.nbpower1())
-    I2 = range(data.nbpower2())
-    W = range(data.weeks())
-    T = range(data.timestep())
-    K_i = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
-    IK = [(i, k) for i in I2 for k in K_i[i]]
+    I1 = range(data.nbpower1())   
+    I2 = range(data.nbpower2())  
+    T = range(data.timestep())  
+    W = range(data.weeks()) 
+    campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+    K_i = [ # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
+        [
+            list(
+                range(
+                    data.accessCampaign(i, k).earlieststop(),
+                    data.accessCampaign(i, k).lateststop() + 1,
+                )
+            )
+            for k in campaign_ids_by_unit[i]
+        ]
+        for i in I2
+    ]
+    # IK = [(i, k) for i in I2 for k in K_i[i]]
 
     Dem_t = data.accessScenario(0).demands()
     Cost_it = [
@@ -36,14 +48,18 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     Pmax_2 = [
         [data.accessPower2(i).pmax()[t] for t in T]
         for i in I2]  # Type 2 units: Pmax_2[i][t]
-    # Rmax
-    # Smax
-    # Sth_min
+    Rmax = [data.accessPower2(i).maxrefuel() for i in I2]  
+    Smax = [data.accessPower2(i).maxstock() for i in I2]
     Sth_min = [data.accessPower2(i).minstock() for i in I2]
-    # X_i1
     X_i = [data.accessPower2(i).initialstock() for i in I2]  
     D_t = data.timestepduration()
-    # Da_ik
+    DA_ik = [
+        [
+            data.accessCampaign(i, k).durationoutage()
+            for k in campaign_ids_by_unit[i]
+        ]
+        for i in I2
+    ]   
 
     # ======= VARIABLES =======
     # y_it
@@ -65,73 +81,139 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                             lb=0,
                             name_prefix=f"p_{{i}}_{{t}}")  
     
-    # r_it indexed on existing campaigns only: (i, k)
-    r_it = model.addVariables(T,
+    # r_it
+    r_it = model.addVariables(I2, T,
                           type=hp.HighsVarType.kContinuous,
                           lb=0,
-                          name_prefix="r_{i}_{k}")
-
-    # x_ik
-    x_ik = model.addVariables(IK,
-                            type=hp.HighsVarType.kInteger,
-                            lb=0, ub=1,
-                            name_prefix="x_{ik}")
+                          name_prefix="r_{i}_{t}")
 
     # s_it
     s_it = model.addVariables(I2, T,
                             type=hp.HighsVarType.kContinuous,
                             lb=0,
-                            name_prefix="s_{i}_{t}")
+                            name_prefix="s_{i}_{t}")                          
+
+    # x_ik
+    # x_ik = model.addVariables(IK,
+    #                         type=hp.HighsVarType.kInteger,
+    #                         lb=0, ub=1,
+    #                         name_prefix="x_{ik}")
+
+    # x_itk indexed by (unit i, start time t, campaign index k_idx)
+    max_campaigns = max((len(K_i[i]) for i in I2), default=0)
+    x_itk = model.addVariables(
+        I2,
+        T,
+        range(max_campaigns),
+        type=hp.HighsVarType.kInteger,
+        lb=0,
+        ub=1,
+        name_prefix="x_{i}_{t}_{k}"
+    )
 
     # ======= OBJECTIVE =======
     model.setObjective(
-        sum(Cost_it[i][t] * p1_it[i, t] * D_t[t] for i in I1 for t in T)
-        + sum(RefCost_ik[i][k] * r_ik[i,k] for i in I2 for k in K_i[i])
-        , sense=hp.ObjSense.kMinimize
+        sum(Cost_it[i][t] * p1_it[i, t] * D_t[t] 
+            for i in I1 for t in T
+        )
+        +
+        sum(
+            RefCost_ik[i][k_idx] *
+            sum(r_it[i, t] for t in K_i[i][k_idx])
+            for i in I2
+            for k_idx in range(len(K_i[i]))
+        ),
+        sense=hp.ObjSense.kMinimize
     )
 
     # ======= CONSTRAINTS =======
-    # (2) 
     for t in T:
+        # (2) 
         model.addConstr(
-            sum(p2_it[i, t] for i in I2) + sum(p1_it[i, t] for i in I1)
-                            >= Dem_t[t] ,
+            sum(p2_it[i, t] for i in I2)
+                            >= Dem_t[t] - sum(p1_it[i, t] for i in I1),
             name=f"Demand_constraint_t{t}"
         )
-    # (3)
-    for t in T:
+        # (3)
         for i in I1:
             model.addConstr(
-                p1_it[i, t] #== 10 pr verifier que les contraintes sont bien prises en compte,
+                p1_it[i, t] 
                         <= Pmax_1[i][t],
                 name=f"Pmax1_constraint_i{i}_t{t}"
             )
-    #(4)
-    for t in T:
+        # (4)
         for i in I2:
             model.addConstr(
                 p2_it[i, t] 
                         <= Pmax_2[i][t] * (1 - y_it[i, t]),
                 name=f"Pmax2_constraint_i{i}_t{t}"
             )
-    #(5) et (6)
+
     # stock 
     for i in I2:
         for t in T:
             if t == 0:
+                # (5)
                 model.addConstr(
                     s_it[i,t] == X_i[i] - p2_it[i,t]*D_t[t],
                     name=f"Stock_init_i{i}_t{t}"
                 )
             else:
+                # (6)
                 model.addConstr(
-                    s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + r_it,
+                    s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + r_it[i,t],
                     name=f"Stock_i{i}_t{t}"
                 )
+            # (7)
+            model.addConstr(
+                s_it[i,t] <= Smax[i],
+                name=f"Stock_max_i{i}_t{t}"
+            )
+            # (8)
             model.addConstr(
                 s_it[i,t] >= Sth_min[i],
                 name=f"Stock_min_i{i}_t{t}"
             )
+
+    # (9)
+    for i in I2:
+        for k_idx, k in enumerate(K_i[i]):
+            for t in k:
+                model.addConstr(
+                    r_it[i,t] <= Rmax[i] * x_itk[i,t,k_idx],
+                    name=f"Refuel_limit_i{i}_t{t}_k{k_idx}"
+                )
+    # (10) 
+    for i in I2:
+        for k_idx, k in enumerate(K_i[i]):
+            model.addConstr(
+                sum(x_itk[i,t,k_idx] for t in k) <= 1,
+                name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
+            )
+    
+    # (11)
+
+    # (12)
+    for i in I2:
+        model.addConstr(
+            sum(y_it[i,t] for t in T) 
+            == 
+            sum (DA_ik[i][k_idx] * x_itk[i,t,k_idx] 
+                 for k_idx, k in enumerate(K_i[i]) 
+                 for t in k),
+            name=f"Link_y_x_i{i}"
+        )
+
+    # (13)
+    for i in I2:
+        for k_idx, k in enumerate(K_i[i]):
+            for t in k:
+                model.addConstr(
+                    sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
+                    == 
+                    DA_ik[i][k_idx] * x_itk[i, t, k_idx],
+                    name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
+                )
         
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
@@ -155,41 +237,43 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in I1 for t in T}
         p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in I2 for t in T}
         y_solution = {(i,t): model.variableValue(y_it[i,t]) for i in I2 for t in T}
-        r_solution = {(i,k): model.variableValue(r_ik[i,k]) for i in I2 for k in K_i[i]}
+        r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T}
         s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
-        x_solution = {(i,t,k): model.variableValue(x_itk[i,t,k]) for i in I2 for k in K_i[i] for t in k}
+        x_solution = {
+            (i, t, k_idx): model.variableValue(x_itk[i, t, k_idx])
+            for i in I2
+            for k_idx, k in enumerate(K_i[i])
+            for t in k
+        }
 
         sol = [p1_solution, p2_solution, y_solution, r_solution, s_solution]
        
 
         # # ===== Pour verif =====
-        # production_cost = 0.0
-        # for i in I1:
-        #     for t in T:
-        #         production_cost += Cost_it[i][t] * p1_solution[i,t] * D_t[t]
+        production_cost = 0.0
+        for i in I1:
+            for t in T:
+                production_cost += Cost_it[i][t] * p1_solution[i,t] * D_t[t]
 
-        # for i in I2:
-        #     for t in T:
-        #         production_cost += 0  
+        for i in I2:
+            for t in T:
+                production_cost += 0  
                 
-        # refuel_cost = 0.0
-        # for i in I2:
-        #     for k in K_i[i]:
-        #         refuel_cost += RefCost_ik[i][k] * r_solution[i,k]
-        
-       
-
+        refuel_cost = 0.0
+        for i in I2:
+            for k_idx, k in enumerate(K_i[i]):
+                refuel_cost += RefCost_ik[i][k_idx] * sum(r_solution[i, t] for t in k)
   
 
-        # for t in T:
-        #     prod1_t = sum(p1_solution[i,t] for i in I1)
-        #     prod2_t = sum(p2_solution[i,t] for i in I2)
-        #     total_refuel_t = sum(r_solution[i,k] for i in I2 for k in K_i[i])
-        #     stocks_t = {i: s_solution[i,t] for i in I2}
-        #     print(f"t={t} : production1={prod1_t}, production2={prod2_t}, total={prod1_t+prod2_t}, demand={Dem_t[t]}, total recharge={total_refuel_t}, stocks={stocks_t}")
+        for t in T:
+            prod1_t = sum(p1_solution[i,t] for i in I1)
+            prod2_t = sum(p2_solution[i,t] for i in I2)
+            total_refuel_t = sum(r_solution[i, t] for i in I2)
+            stocks_t = {i: s_solution[i,t] for i in I2}
+            print(f"t={t} : production1={prod1_t}, production2={prod2_t}, total={prod1_t+prod2_t}, demand={Dem_t[t]}, total recharge={total_refuel_t}, stocks={stocks_t}")
         
-        # print(f"Total production cost: {production_cost}")
-        # print(f"Total refueling cost: {refuel_cost}")
+        print(f"Total production cost: {production_cost}")
+        print(f"Total refueling cost: {refuel_cost}")
 
 
     else:
