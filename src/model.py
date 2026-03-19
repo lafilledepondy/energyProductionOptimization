@@ -2,8 +2,8 @@ import time
 from xml.parsers.expat import model
 import highspy as hp
 
-from solution import Solution
-from data import Readingfile
+from solution import *
+from data import *
 
 
 def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
@@ -48,7 +48,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     Pmax_2 = [
         [data.accessPower2(i).pmax()[t] for t in T]
         for i in I2]  # Type 2 units: Pmax_2[i][t]
-    Rmax = [data.accessPower2(i).maxrefuel() for i in I2]  
+    Rmax = [
+        [
+            data.accessCampaign(i, k).maxrefuel()
+            for k in campaign_ids_by_unit[i]
+        ]
+        for i in I2
+    ]  
     Smax = [data.accessPower2(i).maxstock() for i in I2]
     Sth_min = [data.accessPower2(i).minstock() for i in I2]
     X_i = [data.accessPower2(i).initialstock() for i in I2]  
@@ -178,9 +184,9 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     # (9)
     for i in I2:
         for k_idx, k in enumerate(K_i[i]):
-            for t in k:
+            for t in T:
                 model.addConstr(
-                    r_it[i,t] <= Rmax[i] * x_itk[i,t,k_idx],
+                    r_it[i,t] <= Rmax[i][k_idx] * y_it[i,t],
                     name=f"Refuel_limit_i{i}_t{t}_k{k_idx}"
                 )
     # (10) 
@@ -208,12 +214,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     for i in I2:
         for k_idx, k in enumerate(K_i[i]):
             for t in k:
-                model.addConstr(
-                    sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
-                    == 
-                    DA_ik[i][k_idx] * x_itk[i, t, k_idx],
-                    name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
-                )
+                if t + DA_ik[i][k_idx] <= data.timestep():
+                    model.addConstr(
+                        sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
+                        == 
+                        DA_ik[i][k_idx] * x_itk[i, t, k_idx],
+                        name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
+                    )
         
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
@@ -236,17 +243,18 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         
         p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in I1 for t in T}
         p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in I2 for t in T}
-        y_solution = {(i,t): model.variableValue(y_it[i,t]) for i in I2 for t in T}
-        r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T}
+        y_solution = {(i,t): model.variableValue(y_it[i,t]) for i in I2 for t in T if model.variableValue(y_it[i,t]) > 0.1}
+        r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T }
         s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
         x_solution = {
             (i, t, k_idx): model.variableValue(x_itk[i, t, k_idx])
             for i in I2
             for k_idx, k in enumerate(K_i[i])
             for t in k
+            if model.variableValue(x_itk[i, t, k_idx]) > 0.1
         }
 
-        sol = [p1_solution, p2_solution, y_solution, r_solution, s_solution]
+        sol = [p1_solution, p2_solution, y_solution, r_solution, s_solution, x_solution]
        
 
         # # ===== Pour verif =====
@@ -278,7 +286,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
 
     else:
         obj_value = -1
-        sol = [0,0,0,0,0]
+        sol = [0,0,0,0,0,0]
 
     return Solution(model.modelStatusToString(model_status), 
                     obj_value, 

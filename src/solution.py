@@ -11,6 +11,7 @@ class Solution:
         self._soly = sol[2]
         self._solr = sol[3]
         self._sols = sol[4]
+        self._solx = sol[5]
 
     def value(self):
         return self._obj_value
