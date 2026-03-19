@@ -102,16 +102,6 @@ class power2 :
     def pmax(self):
         return self._pmax
 
-    # TODO A REVOIR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    def maxrefuel(self):
-        if not self._Campaigns:
-            return 0
-        return max(float(c.maxrefuel()) for c in self._Campaigns)
-
-    def maxstock(self):
-        if not self._Campaigns:
-            return 0
-        return max(float(c.maxstock()) for c in self._Campaigns)
 
 class alldata :
     def __init__(self, name):

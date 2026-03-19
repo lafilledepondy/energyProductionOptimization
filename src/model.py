@@ -30,8 +30,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         ]
         for i in I2
     ]
-    # IK = [(i, k) for i in I2 for k in K_i[i]]
-
     Dem_t = data.accessScenario(0).demands()
     Cost_it = [
         [data.accessPower1(0, i).cost()[t] for t in T]
@@ -55,7 +53,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         ]
         for i in I2
     ]  
-    Smax = [data.accessPower2(i).maxstock() for i in I2]
+    Smax = [
+        [
+            data.accessCampaign(i, k).maxstock()
+            for k in campaign_ids_by_unit[i]
+        ]
+        for i in I2
+    ]
     Sth_min = [data.accessPower2(i).minstock() for i in I2]
     X_i = [data.accessPower2(i).initialstock() for i in I2]  
     D_t = data.timestepduration()
@@ -73,11 +77,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                              type=hp.HighsVarType.kInteger, 
                              lb=0, ub=1, 
                              name_prefix=f"y_{{i}}_{{t}}")
-    # p_it
-    # p_it = model.addVariables(list(I1) + list(I2), T,
-    #                         type=hp.HighsVarType.kContinuous,
-    #                         lb=0,
-    #                         name_prefix=f"p_{{i}}_{{t}}")    
+    # p_it    
     p1_it = model.addVariables(I1, T, 
                             type=hp.HighsVarType.kContinuous, 
                             lb=0,
@@ -98,23 +98,24 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                             type=hp.HighsVarType.kContinuous,
                             lb=0,
                             name_prefix="s_{i}_{t}")                          
-
-    # x_ik
-    # x_ik = model.addVariables(IK,
-    #                         type=hp.HighsVarType.kInteger,
-    #                         lb=0, ub=1,
-    #                         name_prefix="x_{ik}")
-
-    # x_itk indexed by (unit i, start time t, campaign index k_idx)
+    
+    # TODO : ne prends pas en compte les k in K_i et t in k 
+    # x_ikt indexed by (unit i, start time t, campaign index k_idx)
     max_campaigns = max((len(K_i[i]) for i in I2), default=0)
-    x_itk = model.addVariables(
-        I2,
-        T,
-        range(max_campaigns),
+        
+    index_set = [
+    (i, k, t)
+    for i in I2
+    for k in range(len(K_i[i]))
+    for t in K_i[i][k]
+    ]
+
+    x_ikt = model.addVariables(
+        index_set,
         type=hp.HighsVarType.kInteger,
         lb=0,
         ub=1,
-        name_prefix="x_{i}_{t}_{k}"
+        name_prefix="x_{i}_{k}_{t}"
     )
 
     # ======= OBJECTIVE =======
@@ -170,11 +171,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                     s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + r_it[i,t],
                     name=f"Stock_i{i}_t{t}"
                 )
-            # (7)
-            model.addConstr(
-                s_it[i,t] <= Smax[i],
-                name=f"Stock_max_i{i}_t{t}"
-            )
             # (8)
             model.addConstr(
                 s_it[i,t] >= Sth_min[i],
@@ -189,22 +185,35 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                     r_it[i,t] <= Rmax[i][k_idx] * y_it[i,t],
                     name=f"Refuel_limit_i{i}_t{t}_k{k_idx}"
                 )
+                # (7)
+                model.addConstr(
+                    s_it[i,t] <= Smax[i][k_idx],
+                    name=f"Stock_max_i{i}_t{t}_k{k_idx}"
+                )
     # (10) 
     for i in I2:
         for k_idx, k in enumerate(K_i[i]):
             model.addConstr(
-                sum(x_itk[i,t,k_idx] for t in k) <= 1,
+                sum(x_ikt[i,k_idx, t] for t in k) <= 1,
                 name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
             )
     
     # (11)
+    # for i in I2:
+    #     for k_idx, k in enumerate(K_i[i]):
+    #         for t in k:
+    #             for j in range(t, t+DA_ik[i][k_idx]-1):
+    #                 model.addConstr(
+    #                     y_it[i][j] >= x_ikt[i][k][t],
+    #                     name=f""
+    #                 )
 
     # (12)
     for i in I2:
         model.addConstr(
             sum(y_it[i,t] for t in T) 
             == 
-            sum (DA_ik[i][k_idx] * x_itk[i,t,k_idx] 
+            sum (DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
                  for k_idx, k in enumerate(K_i[i]) 
                  for t in k),
             name=f"Link_y_x_i{i}"
@@ -218,9 +227,16 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                     model.addConstr(
                         sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
                         == 
-                        DA_ik[i][k_idx] * x_itk[i, t, k_idx],
+                        DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
                         name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
                     )
+                else :
+                    model.addConstr(
+                            x_ikt[i, k_idx, t ]
+                            == 
+                            0 ,
+                            name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
+                        )
         
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
@@ -247,11 +263,11 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T }
         s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
         x_solution = {
-            (i, t, k_idx): model.variableValue(x_itk[i, t, k_idx])
+            (i, k_idx, t): model.variableValue(x_ikt[i,k_idx, t])
             for i in I2
             for k_idx, k in enumerate(K_i[i])
             for t in k
-            if model.variableValue(x_itk[i, t, k_idx]) > 0.1
+            if model.variableValue(x_ikt[i,k_idx, t]) > 0.1
         }
 
         sol = [p1_solution, p2_solution, y_solution, r_solution, s_solution, x_solution]
@@ -282,6 +298,8 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         
         print(f"Total production cost: {production_cost}")
         print(f"Total refueling cost: {refuel_cost}")
+        print(sol[2])
+        print(sol[5])
 
 
     else:
