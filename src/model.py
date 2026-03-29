@@ -18,12 +18,13 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     T = range(data.timestep())  
     W = range(data.weeks()) 
     campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
-    K_i = [ # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
+    horizon_last_t = data.timestep() - 1
+    K_i = [  # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
         [
             list(
                 range(
-                    data.accessCampaign(i, k).earlieststop(),
-                    data.accessCampaign(i, k).lateststop() + 1,
+                    max(0, data.accessCampaign(i, k).earlieststop()), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
+                    min(horizon_last_t, data.accessCampaign(i, k).lateststop()) + 1, # same here
                 )
             )
             for k in campaign_ids_by_unit[i]

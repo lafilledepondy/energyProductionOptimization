@@ -3,11 +3,13 @@ from pathlib import Path
 from data import Readingfile
 from model import runMILPModel_1, runMILPModel_2
 from solution import Solution
+from heristiques import MaintenanceHeuristicV1
+
+# TODO: handle when the file path doesn't exist
 
 def read_file_demo():
     # TODO: properly 
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / "data0.txt"
-
     data = Readingfile(str(data_file))
 
     print(f"Loaded instance: {data.name()}")
@@ -23,40 +25,36 @@ def read_file_demo():
     for i, p2 in enumerate(data.Power2()):
         print(f"Pmax for powerplant2[{i}] ({p2.name()}): {p2.pmax()[:10]}")
 
-def model_demo():  
-    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / "data3.txt"
-
+def model_demo():
+    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / "data0.txt"
     data = Readingfile(str(data_file))
-
 
     sol = runMILPModel_1(data, outputFlag=True, timeLimit=3600)
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
 
-    # I2 = range(data.nbpower2()) 
-    # campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+def heuristic_demo(file_name: str = "data0.txt"):
+    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / "data0.txt"
+    data = Readingfile(str(data_file))
 
-    # K_i = [ # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
-    #         [
-    #             list(
-    #                 range(
-    #                     data.accessCampaign(i, k).earlieststop(),
-    #                     data.accessCampaign(i, k).lateststop() + 1,
-    #                 )
-    #             )
-    #             for k in campaign_ids_by_unit[i]
-    #         ]
-    #         for i in I2
-    #     ]
+    heuristic = MaintenanceHeuristicV1()
+    result = heuristic.solve(data)
 
-    # k_K_i = [ [k] for i in I2 for k in K_i[i]]
-    # index_set = [
-    # (i, k, t)
-    # for i in I2
-    # for k in range(len(K_i[i]))
-    # for t in K_i[i][k]
-    # ]
+    if result is None:
+        print(f"Heuristic failed to find a solution for {data_file.name}.")
+        return
 
-    # print(K_i[1][1])
-    # # print(index_set[0])
+    y_it = result.get("y", [])
+    x_itk = result.get("x", [])
+    total_outage_slots = sum(sum(row) for row in y_it) if y_it else 0
+    total_selected_campaigns = sum(len(choices) for choices in x_itk) if x_itk else 0
+
+    print(f"Heuristic found a solution for {data_file.name}:")
+    print(f"- selected campaigns: {total_selected_campaigns}")
+    print(f"- outage slots used: {total_outage_slots}")
+
+    for i in range(min(3, len(x_itk))):
+        print(f"- unit {i} campaign choices: {x_itk[i]}")
+
+

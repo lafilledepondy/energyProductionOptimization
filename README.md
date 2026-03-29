@@ -41,6 +41,10 @@ pip install -r requirements.txt
 
 ## Usage
 
+```bash
+./main.py
+```
+
 ## Roadmap
 
 ## License
