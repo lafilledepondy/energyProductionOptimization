@@ -31,6 +31,11 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         ]
         for i in I2
     ]
+
+    K_i_simple = {}
+    for i in I2:
+        K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
+
     Dem_t = data.accessScenario(0).demands()
     Cost_it = [
         [data.accessPower1(0, i).cost()[t] for t in T]
@@ -67,7 +72,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     DA_ik = [
         [
             data.accessCampaign(i, k).durationoutage()
-            for k in campaign_ids_by_unit[i]
+            for k in range(data.nbcampaigns())
         ]
         for i in I2
     ]   
@@ -127,10 +132,11 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         +
         sum(
             RefCost_ik[i][k_idx] *
-            sum(r_it[i, t] for t in K_i[i][k_idx])
+            sum(r_it[i, t] for t in T)
             for i in I2
             for k_idx in range(len(K_i[i]))
-        ),
+        )
+        ,
         sense=hp.ObjSense.kMinimize
     )
 
@@ -172,6 +178,12 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
                     s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*D_t[t] + r_it[i,t],
                     name=f"Stock_i{i}_t{t}"
                 )
+
+            # (7)
+            model.addConstr(
+                s_it[i,t] <= Smax[i][0],
+                name=f"Stock_max_i{i}_t{t}"
+            )
             # (8)
             model.addConstr(
                 s_it[i,t] >= Sth_min[i],
@@ -180,17 +192,16 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
 
     # (9)
     for i in I2:
-        for k_idx, k in enumerate(K_i[i]):
-            for t in T:
-                model.addConstr(
-                    r_it[i,t] <= Rmax[i][k_idx] * y_it[i,t],
-                    name=f"Refuel_limit_i{i}_t{t}_k{k_idx}"
-                )
-                # (7)
-                model.addConstr(
-                    s_it[i,t] <= Smax[i][k_idx],
-                    name=f"Stock_max_i{i}_t{t}_k{k_idx}"
-                )
+        for t in T:
+            for k_idx, k in enumerate(K_i[i]):
+                if t in k:
+                    model.addConstr(
+                        r_it[i,t] <= Rmax[i][k_idx] * x_ikt[i,k_idx,t],
+                        name=f"Refuel_limit_i{i}_t{t}"
+                    )
+            if t not in K_i_simple[i] :
+                model.addConstr( r_it[i,t] == 0, name=f"Refuel_limit_i2{i}_t{t}")
+                
     # (10) 
     for i in I2:
         for k_idx, k in enumerate(K_i[i]):
@@ -224,26 +235,33 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     for i in I2:
         for k_idx, k in enumerate(K_i[i]):
             for t in k:
-                if t + DA_ik[i][k_idx] <= data.timestep():
+                if t + DA_ik[i][k_idx] <= len(T):
                     model.addConstr(
                         sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
-                        == 
+                        >= 
                         DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
-                        name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
+                        name=f"Link_y_xx_i{i}_t{t}_k{k_idx}"
                     )
-                else :
-                    model.addConstr(
-                            x_ikt[i, k_idx, t ]
-                            == 
-                            0 ,
-                            name=f"Link_y_x_i{i}_t{t}_k{k_idx}"
-                        )
+                else:
+                    model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
         
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
-    status = model.optimize()
+    #status = model.optimize()
+    model.run()
     end_time = time.time()
     runtime = end_time - start_time
+
+    print("\n----------------------------------")
+    info = model.getInfo()
+    model_status = model.getModelStatus()
+    print('Status de la résolution par le solveur = ', model.modelStatusToString(model_status))
+    print("Valeur de la fonction objectif = ", model.getObjectiveValue())
+    print("Meilleure borne inférieure sur la valeur de la fonction objectif: ", info.mip_dual_bound)
+    print("Gap: ", info.mip_gap)
+    print("# de noeuds explorés: ", info.mip_node_count)
+    print("Temps de résolution (en secondes) = ", runtime)
+    print("----------------------------------")
 
     # On vérifie si une solution primale exploitable existe (optimale ou faisable)
     model_status = model.getModelStatus()
@@ -261,7 +279,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
         p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in I1 for t in T}
         p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in I2 for t in T}
         y_solution = {(i,t): model.variableValue(y_it[i,t]) for i in I2 for t in T if model.variableValue(y_it[i,t]) > 0.1}
-        r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T }
+        r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in I2 for t in T if model.variableValue(r_it[i,t]) > 0.1}
         s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in I2 for t in T}
         x_solution = {
             (i, k_idx, t): model.variableValue(x_ikt[i,k_idx, t])
@@ -275,32 +293,32 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
        
 
         # # ===== Pour verif =====
-        production_cost = 0.0
-        for i in I1:
-            for t in T:
-                production_cost += Cost_it[i][t] * p1_solution[i,t] * D_t[t]
+        # production_cost = 0.0
+        # for i in I1:
+        #     for t in T:
+        #         production_cost += Cost_it[i][t] * p1_solution[i,t] * D_t[t]
 
-        for i in I2:
-            for t in T:
-                production_cost += 0  
+        # for i in I2:
+        #     for t in T:
+        #         production_cost += 0  
                 
-        refuel_cost = 0.0
-        for i in I2:
-            for k_idx, k in enumerate(K_i[i]):
-                refuel_cost += RefCost_ik[i][k_idx] * sum(r_solution[i, t] for t in k)
+        # refuel_cost = 0.0
+        # for i in I2:
+        #     for k_idx, k in enumerate(K_i[i]):
+        #         refuel_cost += RefCost_ik[i][k_idx] * sum(r_solution[i, t] for t in k)
   
 
-        for t in T:
-            prod1_t = sum(p1_solution[i,t] for i in I1)
-            prod2_t = sum(p2_solution[i,t] for i in I2)
-            total_refuel_t = sum(r_solution[i, t] for i in I2)
-            stocks_t = {i: s_solution[i,t] for i in I2}
-            print(f"t={t} : production1={prod1_t}, production2={prod2_t}, total={prod1_t+prod2_t}, demand={Dem_t[t]}, total recharge={total_refuel_t}, stocks={stocks_t}")
+        # for t in T:
+        #     prod1_t = sum(p1_solution[i,t] for i in I1)
+        #     prod2_t = sum(p2_solution[i,t] for i in I2)
+        #     total_refuel_t = sum(r_solution[i, t] for i in I2)
+        #     stocks_t = {i: s_solution[i,t] for i in I2}
+        #     print(f"t={t} : production1={prod1_t}, production2={prod2_t}, total={prod1_t+prod2_t}, demand={Dem_t[t]}, total recharge={total_refuel_t}, stocks={stocks_t}")
         
-        print(f"Total production cost: {production_cost}")
-        print(f"Total refueling cost: {refuel_cost}")
-        print(sol[2])
-        print(sol[5])
+        # print(f"Total production cost: {production_cost}")
+        # print(f"Total refueling cost: {refuel_cost}")
+        # print(sol[2])
+        # print(sol[5])
 
 
     else:
