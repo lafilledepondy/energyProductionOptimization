@@ -246,10 +246,9 @@ def Readingfile(dataFilePath):
                     p2 = power2(index)
                 if actuel == "type 2":
                     
-                    if ligne.startswith("stock") :
+                    if ligne.startswith("stock ") :
                         p2._initialstock = int(ligne.split()[1])
-                    if ligne.startswith("stock") :
-                        p2._initialstock = int(ligne.split()[1])
+                    
                     if ligne.startswith("durations") :
                         duree = ligne.split()[1:]
                         n = len(duree)
@@ -257,7 +256,7 @@ def Readingfile(dataFilePath):
                         for i in range(n):
                             index2 = "campaign_" + str(i)
                             camp = campaign(index2)
-                            camp._durationoutage = int(duree[i])*7
+                            camp._durationoutage = int(duree[i])*int((168/data._timestepduration[1]))
                             p2.addCampaign(camp)
                                
                         
@@ -304,10 +303,10 @@ def Readingfile(dataFilePath):
                         c = int(ligne.split()[1])
                     if ligne.startswith("earliest_stop_time") :
                         e = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._earlieststop = (e-1)*7
+                        data._Power2[p]._Campaigns[c]._earlieststop = (e-1)*int((168/data._timestepduration[1]))
                     if ligne.startswith("latest_stop_time") :
                         l = int(ligne.split()[1])
-                        data._Power2[p]._Campaigns[c]._lateststop = (l-1)*7 + 6
+                        data._Power2[p]._Campaigns[c]._lateststop = (l-1)*int((168/data._timestepduration[1])) + int((144/data._timestepduration[1]))
             
             return data
                     
