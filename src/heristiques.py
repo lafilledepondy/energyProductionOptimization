@@ -1,4 +1,5 @@
 from data import Readingfile
+import data
 
 # -----------------------------
 # Abstract class
@@ -12,21 +13,28 @@ class AbstractMaintenanceHeuristic:
 # -----------------------------
 class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic): 
     def computePriorityScores(self, data: Readingfile) -> list[tuple[int, float]]:
-        """
-        - Low initial stock => urgent refueling
-        - High max power => high impact on production
-        - Few campaigns => low flexibility
-        """
         w_i_tab = []
+        I2 = range(data.nbpower2())
+        Xi1 = [data.accessPower2(i).initialstock() for i in I2]
+        Sth_min = [data.accessPower2(i).minstock() for i in I2]
+        campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+        Smax_ik = [
+            [
+                data.accessCampaign(i, k).maxstock()
+                for k in campaign_ids_by_unit[i]
+            ]
+            for i in I2
+        ]
 
-        for i in range(data.nbpower2()):
-            plant = data.accessPower2(i)
-            Xi1 = plant.initialstock()          
-            Pmax_i = sum(plant.pmax())          
-            Ki_size = len(plant.Campaigns())    
-
-            # priority score
-            Wi = (1 / (Xi1 + 1e-6)) + Pmax_i + (1 / (Ki_size + 1e-6)) # + 1e-6 pour eviter /0
+        for i in I2:
+            if all(v == Smax_ik[i][0] for v in Smax_ik[i]):
+                smax_i = Smax_ik[i][0]
+            else:
+                print(f"Warning: Smax_ik values are not the same for all campaigns of unit {i}.")
+                            
+            Wi = (Xi1[i] - Sth_min[i]) / (smax_i - Sth_min[i]) # stock (Xi1 - Sth_min_i) / (Smax_ik - Sth_min_i)
+            # Wi += # puissance
+            # Wi += 1-(sum( for k in Ki)/len(data.timestep())) # fenetres de maintenance
 
             w_i_tab.append((i, Wi))
 

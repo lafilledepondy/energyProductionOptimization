@@ -6,7 +6,7 @@ from solution import *
 from data import *
 
 
-def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: float):
+def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenario: int = 0) -> Solution:
     # ======= MODEL =======
     model = hp.Highs()
     model.setOptionValue('time_limit', timeLimit)
@@ -35,7 +35,6 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
     # ]
 
     K_i = []
-
     for i in I2:
         campaigns_i = []
     
@@ -49,14 +48,13 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                 campaigns_i.append(k_range)
     
         K_i.append(campaigns_i)
-
     K_i_simple = {}
     for i in I2:
         K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
 
-    Dem_t = data.accessScenario(Scena).demands()
+    Dem_t = data.accessScenario(scenario).demands()
     Cost_it = [
-        [data.accessPower1(0, i).cost()[t] for t in T]
+        [data.accessPower1(scenario, i).cost()[t] for t in T]
         for i in I1]  # Cost_it[i][t]
     RefCost_ik = [
         [float(data.accessCampaign(i, k).refuelingcost()) 
@@ -123,8 +121,6 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                             lb=0,
                             name_prefix="s_{i}_{t}")                          
     
-    # TODO : ne prends pas en compte les k in K_i et t in k 
-    # x_ikt indexed by (unit i, start time t, campaign index k_idx)
     max_campaigns = max((len(K_i[i]) for i in I2), default=0)
         
     index_set = [
@@ -144,19 +140,21 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
 
     # ======= OBJECTIVE =======
     model.setObjective(
+        # production cost
         sum(Cost_it[i][t] * p1_it[i, t] * D_t[t] 
             for i in I1 for t in T
         )
         +
+        # refueling cost (FIXED)
         sum(
             RefCost_ik[i][k_idx] *
-            sum(r_it[i, t] for t in T)
+            sum(r_it[i, t] for t in K_i[i][k_idx])
             for i in I2
             for k_idx in range(len(K_i[i]))
-        )
-        ,
+        ),
         sense=hp.ObjSense.kMinimize
-    )
+    )        
+
 
     # ======= CONSTRAINTS =======
     for t in T:
@@ -208,9 +206,7 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                 name=f"Stock_min_i{i}_t{t}"
             )
 
-    #(9)
-    for i in I2:
-        for t in T:
+            # (9)
             for k_idx, k in enumerate(K_i[i]):
                 if t in k:
                     model.addConstr(
@@ -219,14 +215,6 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                     )
             if t not in K_i_simple[i] :
                 model.addConstr( r_it[i,t] == 0, name=f"Refuel_limit_i2{i}_t{t}")
-                
-    # (10) 
-    for i in I2:
-        for k_idx, k in enumerate(K_i[i]):
-            model.addConstr(
-                sum(x_ikt[i,k_idx, t] for t in k) <= 1,
-                name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
-            )
     
     # (11)
     # for i in I2:
@@ -238,8 +226,7 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
     #                     name=f""
     #                 )
 
-    # (12)
-    for i in I2:
+        # (12)
         model.addConstr(
             sum(y_it[i,t] for t in T) 
             == 
@@ -248,11 +235,15 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                  for t in k),
             name=f"Link_y_x_i{i}"
         )
-
-    # (13)
-    for i in I2:
+        
         for k_idx, k in enumerate(K_i[i]):
+            # (10) 
+            model.addConstr(
+                sum(x_ikt[i,k_idx, t] for t in k) <= 1,
+                name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
+            )
             for t in k:
+                # (13)
                 if t + DA_ik[i][k_idx] <= len(T):
                     model.addConstr(
                         sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
@@ -262,7 +253,7 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                     )
                 else:
                     model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
-        
+
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
     #status = model.optimize()
@@ -347,21 +338,3 @@ def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: fl
                     obj_value, 
                     model.getInfo().mip_dual_bound, runtime, sol)
 
-
-def runMILPModel_2(data: Readingfile, outputFlag: bool, timeLimit: float):
-    # ======= VARIABLES =======
-
-
-    # ======= OBJECTIVE =======
-
-
-    # ======= CONSTRAINTS =======
-
-
-    # ======= MODEL =======
-
-    
-    # ===== EXTRACT SOLUTION =====
- 
-    # return Solution(status, obj_value, dualBound, runtime)
-    pass

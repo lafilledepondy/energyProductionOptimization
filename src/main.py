@@ -43,8 +43,8 @@ def main():
 
     # === Uncomment to run a specific demo === 
     # read_file()
-    # model_demo()
-    heuristic_demo()
+    model_demo()
+    # heuristic_demo()
 
 if __name__ == "__main__":
     main()    
