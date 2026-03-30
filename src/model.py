@@ -6,7 +6,7 @@ from solution import *
 from data import *
 
 
-def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
+def runMILPModel_1(data: Readingfile, Scena:int, outputFlag: bool, timeLimit: float):
     # ======= MODEL =======
     model = hp.Highs()
     model.setOptionValue('time_limit', timeLimit)
@@ -19,24 +19,42 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     W = range(data.weeks()) 
     campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
     horizon_last_t = data.timestep() - 1
-    K_i = [  # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
-        [
-            list(
-                range(
-                    max(0, data.accessCampaign(i, k).earlieststop()), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
-                    min(horizon_last_t, data.accessCampaign(i, k).lateststop()) + 1, # same here
-                )
-            )
-            for k in campaign_ids_by_unit[i]
-        ]
-        for i in I2
-    ]
+    # K_i = [  # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
+    #     [
+    #         list(
+    #             range(
+    #                 max(0, data.accessCampaign(i, k).earlieststop()), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
+    #                 min(horizon_last_t, data.accessCampaign(i, k).lateststop()) + 1, # same here
+    #                 # data.accessCampaign(i, k).earlieststop(), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
+    #                 # data.accessCampaign(i, k).lateststop() + 1, # same here
+    #             )
+    #         )
+    #         for k in campaign_ids_by_unit[i]
+    #     ]
+    #     for i in I2
+    # ]
+
+    K_i = []
+
+    for i in I2:
+        campaigns_i = []
+    
+        for k in campaign_ids_by_unit[i]:
+            start = max(0, data.accessCampaign(i, k).earlieststop())
+            end   = min(horizon_last_t, data.accessCampaign(i, k).lateststop())
+        
+            k_range = list(range(start, end + 1))
+        
+            if k_range != [0]:   
+                campaigns_i.append(k_range)
+    
+        K_i.append(campaigns_i)
 
     K_i_simple = {}
     for i in I2:
         K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
 
-    Dem_t = data.accessScenario(0).demands()
+    Dem_t = data.accessScenario(Scena).demands()
     Cost_it = [
         [data.accessPower1(0, i).cost()[t] for t in T]
         for i in I1]  # Cost_it[i][t]
@@ -55,14 +73,14 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     Rmax = [
         [
             data.accessCampaign(i, k).maxrefuel()
-            for k in campaign_ids_by_unit[i]
+            for k in range(len(K_i[i]))
         ]
         for i in I2
     ]  
     Smax = [
         [
             data.accessCampaign(i, k).maxstock()
-            for k in campaign_ids_by_unit[i]
+            for k in range(len(K_i[i]))
         ]
         for i in I2
     ]
@@ -72,7 +90,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
     DA_ik = [
         [
             data.accessCampaign(i, k).durationoutage()
-            for k in range(data.nbcampaigns())
+            for k in range(len(K_i[i]))
         ]
         for i in I2
     ]   
@@ -186,11 +204,11 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float):
             )
             # (8)
             model.addConstr(
-                s_it[i,t] >= Sth_min[i],
+                s_it[i,t] >= 100,
                 name=f"Stock_min_i{i}_t{t}"
             )
 
-    # (9)
+    #(9)
     for i in I2:
         for t in T:
             for k_idx, k in enumerate(K_i[i]):

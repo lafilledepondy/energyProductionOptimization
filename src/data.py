@@ -306,6 +306,8 @@ def Readingfile(dataFilePath):
                         data._Power2[p]._Campaigns[c]._earlieststop = (e-1)*int((168/data._timestepduration[1]))
                     if ligne.startswith("latest_stop_time") :
                         l = int(ligne.split()[1])
+                        if l == -1 :
+                            l = data.timestep()-1
                         data._Power2[p]._Campaigns[c]._lateststop = (l-1)*int((168/data._timestepduration[1])) + int((144/data._timestepduration[1]))
             
             return data
