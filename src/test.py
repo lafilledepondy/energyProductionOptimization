@@ -2,10 +2,10 @@ from data import *
 from model import *
 from solution import *
 
-dataFilePath = "data/Base_A/data1.txt"
+dataFilePath = "data/Base_A/toy.txt"
 data = Readingfile(dataFilePath)
 
-solution = runMILPModel_1(data, 0, False, 3600)
+#solution = runMILPModel_1(data, 0, False, 3600)
 
 # print("Production P2  :")
 # print(solution._solP2)
@@ -24,4 +24,6 @@ solution = runMILPModel_1(data, 0, False, 3600)
 
 # print("Y_it")
 # print(solution._soly)
+
+
 

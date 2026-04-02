@@ -7,7 +7,7 @@ from heristiques import MaintenanceHeuristicV1
 
 # TODO: handle when the file path doesn't exist
 
-def read_file_demo(file_name: str = "data0.txt"):
+def read_file_demo(file_name: str = "toy.txt"):
     # TODO: properly 
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
@@ -25,7 +25,7 @@ def read_file_demo(file_name: str = "data0.txt"):
     for i, p2 in enumerate(data.Power2()):
         print(f"Pmax for powerplant2[{i}] ({p2.name()}): {p2.pmax()[:10]}")
 
-def model_demo(file_name: str = "data0.txt"):
+def model_demo(file_name: str = "data2.txt"):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
@@ -34,27 +34,30 @@ def model_demo(file_name: str = "data0.txt"):
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
 
-def heuristic_demo(file_name: str = "data0.txt"):
+def heuristic_demo(file_name: str):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
     heuristic = MaintenanceHeuristicV1()
     result = heuristic.solve(data)
 
-    if result is None:
-        print(f"Heuristic failed to find a solution for {data_file.name}.")
-        return
+    print(result)
+    #valeur de fct objecti, temps de resoluation
 
-    y_it = result.get("y", [])
-    x_itk = result.get("x", [])
-    total_outage_slots = sum(sum(row) for row in y_it) if y_it else 0
-    total_selected_campaigns = sum(len(choices) for choices in x_itk) if x_itk else 0
+    # if result is None:
+    #     print(f"Heuristic failed to find a solution for {data_file.name}.")
+    #     return
 
-    print(f"Heuristic found a solution for {data_file.name}:")
-    print(f"- selected campaigns: {total_selected_campaigns}")
-    print(f"- outage slots used: {total_outage_slots}")
+    # y_it = result.get("y", [])
+    # x_itk = result.get("x", [])
+    # total_outage_slots = sum(sum(row) for row in y_it) if y_it else 0
+    # total_selected_campaigns = sum(len(choices) for choices in x_itk) if x_itk else 0
 
-    for i in range(min(3, len(x_itk))):
-        print(f"- unit {i} campaign choices: {x_itk[i]}")
+    # print(f"Heuristic found a solution for {data_file.name}:")
+    # print(f"- selected campaigns: {total_selected_campaigns}")
+    # print(f"- outage slots used: {total_outage_slots}")
+
+    # for i in range(min(3, len(x_itk))):
+    #     print(f"- unit {i} campaign choices: {x_itk[i]}")
 
 

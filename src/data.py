@@ -216,28 +216,31 @@ def Readingfile(dataFilePath):
                         data.addScenario(s)
                         
                         
-
+                
                 if ligne.startswith("type 1") :
                     actuel = "type 1"
                     compte = 0
                     type1 += 1
                     index = "powerplant_1_" + str(type1)
                     
+                    
+                    
 
                 if actuel == "type 1":
+                    
                     if ligne.startswith("pmin"):
                         p1 = power1(index, compte)
+                        
                         p1._pmin = [float(n) for n in ligne.split()[1:]]
                     if ligne.startswith("pmax"):
-                        p1._pmax = [float(n) for n in ligne.split()[1:]]
+                        p1._pmax = [float(n) for n in ligne.split()[1:]]                        
                     if ligne.startswith("cost"):
                         p1._cost = [float(n) for n in ligne.split()[1:]]
-                        
                         data._Scenario[compte].addPower1(p1)
                         compte += 1
                         
                     
-
+                
                 if ligne.startswith("type 2") :
                     actuel = "type 2"
                     compte = 0
@@ -245,7 +248,6 @@ def Readingfile(dataFilePath):
                     index = "powerplant_2_" + str(type2)
                     p2 = power2(index)
                 if actuel == "type 2":
-                    
                     if ligne.startswith("stock ") :
                         p2._initialstock = int(ligne.split()[1])
                     

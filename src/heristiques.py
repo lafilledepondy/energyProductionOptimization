@@ -61,7 +61,7 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
                             
             Wi = (Xi1[i] - Sth_min[i]) / (smax_i - Sth_min[i]) # stock (Xi1 - Sth_min_i) / (Smax_ik - Sth_min_i)
             Wi += sum(Pmax_2[i][t] for t in T) / tot_Pmax_ik[i] # puissance
-            Wi += 1 - (sum( len(k) for k in K_i_simple[i])/len(data.timestep())) # fenetres de maintenance
+            Wi += 1 - (len(K_i_simple[i])/(data.timestep())) # fenetres de maintenance
 
             w_i_tab.append((i, Wi))
 
