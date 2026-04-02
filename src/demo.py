@@ -25,7 +25,7 @@ def read_file_demo(file_name: str = "toy.txt"):
     for i, p2 in enumerate(data.Power2()):
         print(f"Pmax for powerplant2[{i}] ({p2.name()}): {p2.pmax()[:10]}")
 
-def model_demo(file_name: str = "data2.txt"):
+def model_demo(file_name: str):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 

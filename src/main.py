@@ -43,7 +43,7 @@ def main():
 
     # === Uncomment to run a specific demo === 
     #read_file_demo()
-    model_demo("data2.txt")
+    model_demo("data1.txt")
     # model_demo()
     # heuristic_demo("data0.txt")
     #heuristic_demo("toy.txt")
