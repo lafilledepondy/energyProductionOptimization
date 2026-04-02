@@ -25,6 +25,33 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
             ]
             for i in I2
         ]
+        T = range(data.timestep()) 
+        Pmax_2 = [
+            [data.accessPower2(i).pmax()[t] for t in T]
+            for i in I2
+        ]  # Type 2 units: Pmax_2[i][t]
+        tot_Pmax_ik = [
+            sum(Pmax_2[i][t] for t in T) for i in I2
+        ]
+        horizon_last_t = data.timestep() - 1
+        K_i = []
+        for i in I2:
+            campaigns_i = []
+        
+            for k in campaign_ids_by_unit[i]:
+                start = max(0, data.accessCampaign(i, k).earlieststop())
+                end   = min(horizon_last_t, data.accessCampaign(i, k).lateststop())
+            
+                k_range = list(range(start, end + 1))
+            
+                if k_range != [0]:   
+                    campaigns_i.append(k_range)
+        
+            K_i.append(campaigns_i)
+        K_i_simple = {}
+        for i in I2:
+            K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
+            
 
         for i in I2:
             if all(v == Smax_ik[i][0] for v in Smax_ik[i]):
@@ -33,8 +60,8 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
                 print(f"Warning: Smax_ik values are not the same for all campaigns of unit {i}.")
                             
             Wi = (Xi1[i] - Sth_min[i]) / (smax_i - Sth_min[i]) # stock (Xi1 - Sth_min_i) / (Smax_ik - Sth_min_i)
-            # Wi += # puissance
-            # Wi += 1-(sum( for k in Ki)/len(data.timestep())) # fenetres de maintenance
+            Wi += sum(Pmax_2[i][t] for t in T) / tot_Pmax_ik[i] # puissance
+            Wi += 1 - (sum( len(k) for k in K_i_simple[i])/len(data.timestep())) # fenetres de maintenance
 
             w_i_tab.append((i, Wi))
 
