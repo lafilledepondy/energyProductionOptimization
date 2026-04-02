@@ -202,7 +202,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
             )
             # (8)
             model.addConstr(
-                s_it[i,t] >= 100,
+                s_it[i,t] >= Sth_min[i]*0.1,
                 name=f"Stock_min_i{i}_t{t}"
             )
 
