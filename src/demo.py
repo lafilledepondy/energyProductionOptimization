@@ -29,7 +29,7 @@ def model_demo(file_name: str):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    sol = runMILPModel_1(data, outputFlag=True, timeLimit=3600, )
+    sol = runMILPModel_1(data, outputFlag=True, timeLimit=129600, )
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
@@ -42,22 +42,5 @@ def heuristic_demo(file_name: str):
     result = heuristic.solve(data)
 
     print(result)
-    #valeur de fct objecti, temps de resoluation
-
-    # if result is None:
-    #     print(f"Heuristic failed to find a solution for {data_file.name}.")
-    #     return
-
-    # y_it = result.get("y", [])
-    # x_itk = result.get("x", [])
-    # total_outage_slots = sum(sum(row) for row in y_it) if y_it else 0
-    # total_selected_campaigns = sum(len(choices) for choices in x_itk) if x_itk else 0
-
-    # print(f"Heuristic found a solution for {data_file.name}:")
-    # print(f"- selected campaigns: {total_selected_campaigns}")
-    # print(f"- outage slots used: {total_outage_slots}")
-
-    # for i in range(min(3, len(x_itk))):
-    #     print(f"- unit {i} campaign choices: {x_itk[i]}")
 
 
