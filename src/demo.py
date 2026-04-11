@@ -4,6 +4,7 @@ from data import Readingfile
 from model import runMILPModel_1
 from solution import Solution
 from heristiques import MaintenanceHeuristicV1
+from checker import Checker
 
 # TODO: handle when the file path doesn't exist
 
@@ -33,6 +34,7 @@ def model_demo(file_name: str):
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
+    Checker(data, sol)
 
 def heuristic_demo(file_name: str):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
