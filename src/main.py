@@ -43,10 +43,13 @@ def main():
 
     # === Uncomment to run a specific demo === 
     #read_file_demo()
-    #model_demo("toy.txt")
+    # model_demo("toy.txt")
     # model_demo()
-    heuristic_demo("data0.txt", 8610050657314.8)
-    #heuristic_demo("toy.txt", 63274200.0)
+    # heuristic_1_demo("toy.txt", 63274200.0)
+    # heuristic_1_demo("data0.txt", 8610050657314.8)
+    # heuristic_2_demo("toy.txt", 63274200.0)
+    heuristic_2_demo("data0.txt", 8610050657314.8)
+
 
 if __name__ == "__main__":
     main()    
