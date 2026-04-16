@@ -45,8 +45,8 @@ def main():
     #read_file_demo()
     # model_demo("toy.txt")
     # model_demo()
-    # heuristic_demo("data0.txt")
-    heuristic_demo("toy.txt")
+    heuristic_demo("data0.txt", 8610050657314.8)
+    # heuristic_demo("toy.txt", 63274200.0)
 
 if __name__ == "__main__":
     main()    

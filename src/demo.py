@@ -1,4 +1,5 @@
 from pathlib import Path
+from projectUtils import gapEntreOptHeuriEtMILP
 
 try:
     from .data import Readingfile
@@ -45,7 +46,7 @@ def model_demo(file_name: str):
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
     Checker(data, sol)
 
-def heuristic_demo(file_name: str):
+def heuristic_demo(file_name: str, optimal_value: float = None):
     try:
         from .checker import Checker
         from .solution import print_solution
@@ -65,7 +66,8 @@ def heuristic_demo(file_name: str):
 
     print_solution(sol)
     Checker(data, sol)
-
-    
+    if optimal_value is not None:
+        gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
+        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
 
 
