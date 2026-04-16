@@ -394,81 +394,26 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
         print("x_itk:", x_itk)
         
         # etape 3
-        # p1_sol, p2_sol, r_it, s_it = self.plannificationProduction(y_it, x_itk, data, scenario)
 
-        y_sol = {
-            (i, t): 1
-            for i in range(data.nbpower2())
-            for t in range(data.timestep())
-            if y_it[i][t] == 1
-        }
-        x_sol = {
-            (i, k_index, t_start): 1
-            for i, campaigns in enumerate(x_itk)
-            for k_index, t_start in campaigns
-        }
+        # y_sol = {
+        #     (i, t): 1
+        #     for i in range(data.nbpower2())
+        #     for t in range(data.timestep())
+        #     if y_it[i][t] == 1
+        # }
+        # x_sol = {
+        #     (i, k_index, t_start): 1
+        #     for i, campaigns in enumerate(x_itk)
+        #     for k_index, t_start in campaigns
+        # }
 
         # sol = [p1_sol, p2_sol, y_sol, r_it, s_it, x_sol]
 
-        print(y_sol)
-        print(x_sol)
+        # print(y_sol)
+        # print(x_sol)
 
-        return Solution("HEURISTIC2", float('inf'), float('inf'), 0, [{}, {}, y_sol, {}, {}, x_sol])
-
-    #     # calcul de la fct obj
-    #     I1 = range(data.nbpower1())   
-    #     I2 = range(data.nbpower2())
-    #     T = range(data.timestep())
-    #     campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
-    #     horizon_last_t = data.timestep() - 1
-    #     K_i = []
-    #     for i in I2:
-    #         campaigns_i = []
-        
-    #         for k in campaign_ids_by_unit[i]:
-    #             start = max(0, data.accessCampaign(i, k).earlieststop())
-    #             end   = min(horizon_last_t, data.accessCampaign(i, k).lateststop())
-            
-    #             k_range = list(range(start, end + 1))
-            
-    #             if k_range != [0]:   
-    #                 campaigns_i.append(k_range)
-        
-    #         K_i.append(campaigns_i)
-    #     K_i_simple = {}
-    #     for i in I2:
-    #         K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
-    #     RefCost_ik = [
-    #             [float(data.accessCampaign(i, k).refuelingcost()) 
-    #                 for k in range(len(data.accessPower2(i).Campaigns()))
-    #             ]
-    #         for i in I2
-    #         ]
-    #     Cost_it = [
-    #     [data.accessPower1(scenario, i).cost()[t] for t in T]
-    #     for i in I1]  # Cost_it[i][t]
-    #     D_t = data.timestepduration()
-
-    #     obj_value = (
-    #         sum(
-    #             Cost_it[i][t] * p1_sol.get((i, t), 0.0) * D_t[t]
-    #             for i in I1
-    #             for t in T
-    #         )
-    #         +
-    #         sum(
-    #             RefCost_ik[i][k_idx] *
-    #             sum(r_it.get((i, t), 0.0) for t in K_i[i][k_idx])
-    #             for i in I2
-    #             for k_idx in range(len(K_i[i]))
-    #         )
-    #     )
-
-    #     return Solution("HEURISTIC1", 
-    #                 obj_value, 
-    #                 float('inf'), runtime, sol)
+        return Solution("HEURISTIC_2", float('inf'), float('inf'), 0, [{}, {}, {}, {}, {}, {}])
     
-    # def plannificationProduction(self, y_it, x_itk, data, scenario, outputFlag: bool, timeLimit):   
     #     # ======= MODEL =======
     #     model = hp.Highs()
     #     model.setOptionValue('time_limit', timeLimit)
@@ -751,4 +696,7 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
     #         obj_value = -1
     #         sol = [0,0,0,0,0,0]
 
-    #     return p1_solution, p2_solution, r_solution, r_solution      
+        # return Solution((model.modelStatusToString(model_status) + " " + HEURISTIC_2), 
+        #                 obj_value, 
+        #                 model.getInfo().mip_dual_bound, runtime, sol)
+
