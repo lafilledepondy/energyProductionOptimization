@@ -44,6 +44,7 @@ def model_demo(file_name: str):
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
+    print(sol._sols)
     Checker(data, sol)
 
 def heuristic_demo(file_name: str, optimal_value: float = None):
@@ -65,6 +66,7 @@ def heuristic_demo(file_name: str, optimal_value: float = None):
         return
 
     print_solution(sol)
+    #print(sol._sols)
     Checker(data, sol)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)

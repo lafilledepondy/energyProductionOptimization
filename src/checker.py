@@ -15,11 +15,18 @@ def Checker(data: alldata, sol: Solution, scenario: int = 0):
             if  (i,t) in sol._soly and sol._solP2[(i,t)] > 0 : # On vérifie si il y a de la production lors d'une panne 
                 print("Production lors de la panne ", i)
                 test = False
-
+            if sol._sols[(i,t)] > data.accessCampaign(i,0).maxstock() : # On vérifie qu'on ne dépasse pas le stock maximale
+                print("Stock dépassé ! ", i)
+                test = False
+            
             for k in range(data.nbcampaigns()):
                 if (i, k, t) in sol._solx and (i,t) not in sol._soly: #Vérification du départ
                     print("Pas de début de panne en", t)
                     test = False
+                if  (i,t) in sol._solr and (i, k, t) in sol._solx and sol._solr[(i,t)]*sol._solx[(i, k, t)] > data.accessCampaign(i,k).maxrefuel() : # On vérifie que la recharge n'est pas dépasser
+                    print("dépassement de la recharge autorisée ", i)
+                    test = False
+
     if test:
         print("Everything is okay :)")
 
