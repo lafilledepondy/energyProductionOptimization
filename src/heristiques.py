@@ -486,11 +486,13 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
     #     ]   
 
     #     # ======= VARIABLES =======
+    """
     #     # y_it
     #     y_it = model.addVariables(I2, T, 
     #                             type=hp.HighsVarType.kInteger, 
     #                             lb=0, ub=1, 
     #                             name_prefix=f"y_{{i}}_{{t}}")
+    """
     #     # p_it    
     #     p1_it = model.addVariables(I1, T, 
     #                             type=hp.HighsVarType.kContinuous, 
@@ -521,7 +523,7 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
     #     for k in range(len(K_i[i]))
     #     for t in K_i[i][k]
     #     ]
-
+    """
     #     x_ikt = model.addVariables(
     #         index_set,
     #         type=hp.HighsVarType.kInteger,
@@ -529,7 +531,7 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
     #         ub=1,
     #         name_prefix="x_{i}_{k}_{t}"
     #     )
-
+    """
     #     # ======= OBJECTIVE =======
     #     model.setObjective(
     #         # production cost
