@@ -1,11 +1,17 @@
-from data import Readingfile
-import data
+import time
+
+try:
+    from .data import Readingfile
+    from .solution import Solution
+except ImportError:
+    from data import Readingfile
+    from solution import Solution
 
 # -----------------------------
 # Abstract class
 # -----------------------------
 class AbstractMaintenanceHeuristic:
-    def solve(self, data: Readingfile) -> dict:
+    def solve(self, data: Readingfile, scenario: int) -> Solution:
         raise NotImplementedError
 
 # -----------------------------
@@ -46,8 +52,8 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
             
                 if k_range != [0]:   
                     campaigns_i.append(k_range)
-        
             K_i.append(campaigns_i)
+
         K_i_simple = {}
         for i in I2:
             K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
@@ -149,27 +155,128 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
 
         return y_it, x_itk
 
-    def computeProductionPlan(self, data: Readingfile, y_it: list[list[int]], x_itk: list[list[tuple[int, int]]]) -> tuple[list[list[float]], list[list[float]], list[list[float]]]:
+    def computeProductionPlan(
+        self,
+        data: Readingfile,
+        y_it: list[list[int]],
+        x_itk: list[list[tuple[int, int]]],
+    ) -> tuple[
+        dict[tuple[int, int], float],
+        dict[tuple[int, int], float],
+        dict[tuple[int, int], float],
+        dict[tuple[int, int], float],
+    ]:
         T = data.timestep()
-        I = data.nbpower1() + data.nbpower2()
-        p_it = [[0 for _ in range(T)] for _ in range(I)]
-        s_it = []
-        r_it = []
-        return p_it, s_it, r_it
+        p1_sol = {
+            (i, t): float(data.accessPower1(0, i).pmax()[t])
+            for i in range(data.nbpower1())
+            for t in range(T)
+        }
 
-    def solve(self, data: Readingfile) -> dict:
+        p2_sol: dict[tuple[int, int], float] = {}
+        r_sol: dict[tuple[int, int], float] = {}
+        s_sol: dict[tuple[int, int], float] = {}
+
+        scheduled_campaign_start = {
+            i: {t_start: k_index for k_index, t_start in x_itk[i]}
+            for i in range(data.nbpower2())
+        }
+
+        for i in range(data.nbpower2()):
+            plant = data.accessPower2(i)
+            stock = float(plant.initialstock())
+
+            for t in range(T):
+                if t in scheduled_campaign_start[i]:
+                    campaign = plant.Campaigns()[scheduled_campaign_start[i][t]]
+                    target_stock = float(campaign.maxstock())
+                    refuel = max(0.0, target_stock - stock)
+                    if refuel > 0:
+                        r_sol[(i, t)] = refuel
+                    stock += refuel
+
+                production = 0.0 if y_it[i][t] == 1 else float(plant.pmax()[t])
+                p2_sol[(i, t)] = production
+                stock -= production * float(data.timestepduration()[t])
+                s_sol[(i, t)] = stock
+
+        return p1_sol, p2_sol, r_sol, s_sol
+
+    def solve(self, data: Readingfile, scenario: int) -> Solution:
+        start_time = time.time()
         result = self.scheduleMaintenance(data)
 
         if result is None:
             return None
 
         y_it, x_itk = result
-        p_it, s_it, r_it = self.computeProductionPlan(data, y_it, x_itk)
+        p1_sol, p2_sol, r_it, s_it = self.computeProductionPlan(data, y_it, x_itk)
 
-        return {
-            "y": y_it,   # outage decisions
-            "x": x_itk,  # campaign selection
-            "p": p_it,   # production plan
-            "s": s_it,   # stock evolution
-            "r": r_it    # refueling quantities
+        y_sol = {
+            (i, t): 1
+            for i in range(data.nbpower2())
+            for t in range(data.timestep())
+            if y_it[i][t] == 1
         }
+        x_sol = {
+            (i, k_index, t_start): 1
+            for i, campaigns in enumerate(x_itk)
+            for k_index, t_start in campaigns
+        }
+
+        sol = [p1_sol, p2_sol, y_sol, r_it, s_it, x_sol]
+
+        runtime = time.time() - start_time
+
+        # calcul de la fct obj
+        I1 = range(data.nbpower1())   
+        I2 = range(data.nbpower2())
+        T = range(data.timestep())
+        campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
+        horizon_last_t = data.timestep() - 1
+        K_i = []
+        for i in I2:
+            campaigns_i = []
+        
+            for k in campaign_ids_by_unit[i]:
+                start = max(0, data.accessCampaign(i, k).earlieststop())
+                end   = min(horizon_last_t, data.accessCampaign(i, k).lateststop())
+            
+                k_range = list(range(start, end + 1))
+            
+                if k_range != [0]:   
+                    campaigns_i.append(k_range)
+        
+            K_i.append(campaigns_i)
+        K_i_simple = {}
+        for i in I2:
+            K_i_simple[i] = [t for campagne in K_i[i] for t in campagne]
+        RefCost_ik = [
+                [float(data.accessCampaign(i, k).refuelingcost()) 
+                    for k in range(len(data.accessPower2(i).Campaigns()))
+                ]
+            for i in I2
+            ]
+        Cost_it = [
+        [data.accessPower1(scenario, i).cost()[t] for t in T]
+        for i in I1]  # Cost_it[i][t]
+        D_t = data.timestepduration()
+
+        obj_value = (
+            sum(
+                Cost_it[i][t] * p1_sol.get((i, t), 0.0) * D_t[t]
+                for i in I1
+                for t in T
+            )
+            +
+            sum(
+                RefCost_ik[i][k_idx] *
+                sum(r_it.get((i, t), 0.0) for t in K_i[i][k_idx])
+                for i in I2
+                for k_idx in range(len(K_i[i]))
+            )
+        )
+
+        return Solution("HEURISTIC", 
+                    obj_value, 
+                    float('inf'), runtime, sol)

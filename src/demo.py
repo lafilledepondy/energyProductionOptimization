@@ -1,10 +1,12 @@
 from pathlib import Path
 
-from data import Readingfile
-from model import runMILPModel_1
-from solution import Solution
-from heristiques import MaintenanceHeuristicV1
-from checker import Checker
+try:
+    from .data import Readingfile
+    from .heristiques import MaintenanceHeuristicV1
+except ImportError:
+    # Support direct script execution (python src/demo.py)
+    from data import Readingfile
+    from heristiques import MaintenanceHeuristicV1
 
 # TODO: handle when the file path doesn't exist
 
@@ -27,6 +29,13 @@ def read_file_demo(file_name: str = "toy.txt"):
         print(f"Pmax for powerplant2[{i}] ({p2.name()}): {p2.pmax()[:10]}")
 
 def model_demo(file_name: str):
+    try:
+        from .model import runMILPModel_1
+        from .checker import Checker
+    except ImportError:
+        from model import runMILPModel_1
+        from checker import Checker
+
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
@@ -37,12 +46,26 @@ def model_demo(file_name: str):
     Checker(data, sol)
 
 def heuristic_demo(file_name: str):
+    try:
+        from .checker import Checker
+        from .solution import print_solution
+    except ImportError:
+        from checker import Checker
+        from solution import print_solution
+
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
     heuristic = MaintenanceHeuristicV1()
-    result = heuristic.solve(data)
+    sol = heuristic.solve(data, 0)
 
-    print(result)
+    if sol is None:
+        print("Heuristic failed: no feasible solution found.")
+        return
+
+    print_solution(sol)
+    Checker(data, sol)
+
+    
 
 

@@ -21,6 +21,6 @@ def Checker(data: alldata, sol: Solution, scenario: int = 0):
                     print("Pas de début de panne en", t)
                     test = False
     if test:
-        print("Everything is okay")
+        print("Everything is okay :)")
 
         
