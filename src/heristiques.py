@@ -167,12 +167,12 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
         dict[tuple[int, int], float],
     ]:
         T = data.timestep()
-        p1_sol = {
-            (i, t): float(data.accessPower1(0, i).pmax()[t])
-            for i in range(data.nbpower1())
-            for t in range(T)
-        }
-
+        # p1_sol = {
+        #     (i, t): float(data.accessPower1(0, i).pmax()[t])
+        #     for i in range(data.nbpower1())
+        #     for t in range(T)
+        # }
+        p1_sol: dict[tuple[int, int], float] = {}
         p2_sol: dict[tuple[int, int], float] = {}
         r_sol: dict[tuple[int, int], float] = {}
         s_sol: dict[tuple[int, int], float] = {}
@@ -181,7 +181,7 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
             i: {t_start: k_index for k_index, t_start in x_itk[i]}
             for i in range(data.nbpower2())
         }
-
+        productiontot = [0 for t in range(T)]
         for i in range(data.nbpower2()):
             plant = data.accessPower2(i)
             stock = float(plant.initialstock())
@@ -190,15 +190,25 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
                 if t in scheduled_campaign_start[i]:
                     campaign = plant.Campaigns()[scheduled_campaign_start[i][t]]
                     target_stock = float(campaign.maxstock())
-                    refuel = max(0.0, target_stock - stock)
+                    refuel = max(0.0, campaign.maxrefuel()) #target_stock - stock  Modif pour produire que ce qu'on peut
                     if refuel > 0:
                         r_sol[(i, t)] = refuel
                     stock += refuel
 
-                production = 0.0 if y_it[i][t] == 1 else float(plant.pmax()[t])
+                production = 0.0 if y_it[i][t] == 1 else min(float(plant.pmax()[t]), data.accessScenario(0).demands()[t]- productiontot[t]) # Modif pour produire que si on en a besoin sinon on produit max possible
+                if stock - plant.minstock()*0.1 - production* float(data.timestepduration()[t]) < 0 :
+                    production = (stock - plant.minstock()*0.1)/float(data.timestepduration()[t])
                 p2_sol[(i, t)] = production
                 stock -= production * float(data.timestepduration()[t])
                 s_sol[(i, t)] = stock
+                productiontot[t] += production
+
+        for i in range(data.nbpower1()):
+            plant = data.accessPower1(0,i)
+            for t in range(T):
+                reste = data.accessScenario(0).demands()[t]- productiontot[t]
+                sep = reste / data.nbpower1()
+                p1_sol[(i, t)] = sep
 
         return p1_sol, p2_sol, r_sol, s_sol
 
