@@ -21,4 +21,4 @@ def gapEntreOptHeuriEtMILP(f_optimal, f_heuristic):
     if f_optimal == 0:
         return 0.0
 
-    return ((f_optimal - f_heuristic) / f_optimal) * 100
+    return abs(((f_optimal - f_heuristic) / f_optimal)) * 100
