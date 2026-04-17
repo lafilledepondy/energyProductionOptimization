@@ -49,7 +49,7 @@ def model_demo(file_name: str):
     print(sol._sols)
     Checker(data, sol)
 
-def heuristic_1_demo(file_name: str, optimal_value: float = None, scenario):
+def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
         from .checker import Checker
         from .solution import print_solution
@@ -61,7 +61,7 @@ def heuristic_1_demo(file_name: str, optimal_value: float = None, scenario):
     data = Readingfile(str(data_file))
 
     heuristic = MaintenanceHeuristicV1()
-    sol = heuristic.solve(data, scenario)
+    sol = heuristic.solve(data, scheme)
 
     if sol is None:
         print("Heuristic failed: no feasible solution found.")
@@ -73,7 +73,7 @@ def heuristic_1_demo(file_name: str, optimal_value: float = None, scenario):
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
 
-def heuristic_2_demo(file_name: str, optimal_value: float = None, scenario):
+def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
         from .checker import Checker
         from .solution import print_solution
@@ -83,9 +83,10 @@ def heuristic_2_demo(file_name: str, optimal_value: float = None, scenario):
 
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
+    # scenario = 1
 
     heuristic = MaintenanceHeuristicV2()
-    sol = heuristic.solve(data, scenario)
+    sol = heuristic.solve(data, scheme)
 
     if sol is None:
         print("Heuristic failed: no feasible solution found.")
