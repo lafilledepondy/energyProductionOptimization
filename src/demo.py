@@ -49,7 +49,7 @@ def model_demo(file_name: str):
     print(sol._sols)
     Checker(data, sol)
 
-def heuristic_1_demo(file_name: str, optimal_value: float = None):
+def heuristic_1_demo(file_name: str, optimal_value: float = None, scenario):
     try:
         from .checker import Checker
         from .solution import print_solution
@@ -61,7 +61,7 @@ def heuristic_1_demo(file_name: str, optimal_value: float = None):
     data = Readingfile(str(data_file))
 
     heuristic = MaintenanceHeuristicV1()
-    sol = heuristic.solve(data, 0)
+    sol = heuristic.solve(data, scenario)
 
     if sol is None:
         print("Heuristic failed: no feasible solution found.")
@@ -73,7 +73,7 @@ def heuristic_1_demo(file_name: str, optimal_value: float = None):
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
 
-def heuristic_2_demo(file_name: str, optimal_value: float = None):
+def heuristic_2_demo(file_name: str, optimal_value: float = None, scenario):
     try:
         from .checker import Checker
         from .solution import print_solution
@@ -85,7 +85,7 @@ def heuristic_2_demo(file_name: str, optimal_value: float = None):
     data = Readingfile(str(data_file))
 
     heuristic = MaintenanceHeuristicV2()
-    sol = heuristic.solve(data, 0)
+    sol = heuristic.solve(data, scenario)
 
     if sol is None:
         print("Heuristic failed: no feasible solution found.")
