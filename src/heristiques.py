@@ -418,7 +418,8 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
             result = self.findFeasibleStartTime(data, i, demand, remaining_capacity)
 
             if result is None:
-                return None
+                print(f"ÉCHEC : Pas de créneau trouvé pour la centrale {i}. Sortie de fonction.")
+                continue
 
             k_index, t_start = result
             plant = data.accessPower2(i)
@@ -428,6 +429,7 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
             for t in range(t_start, t_start + duration):
                 y_it[i][t] = 1
                 remaining_capacity[t] -= plant.pmax()[t]
+            print(f"Succès pour centrale {i}")
 
         return y_it, x_itk
 

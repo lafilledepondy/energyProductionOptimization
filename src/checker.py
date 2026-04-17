@@ -30,7 +30,7 @@ def Checker(data: alldata, sol: Solution, scenario: int):
                 test = False
             if t == 0:                                                                                          #Calcul des stocks
                 if sol._sols[(i,t)] != plant.initialstock() - sol._solP2[(i,t)]*data.timestepduration()[t] :
-                    print("Mauvais Stock départ ", t)
+                    print("Mauvais Stock départ ", i, t)
                     test = False
                 elif (i,t) in sol._solr and sol._sols[(i,t)] != sol._sols[(i,t-1)] - sol._solP2[(i,t)]*data.timestepduration()[t] + sol._solr[(i,t)] :
                     print("Mauvais calscul Stock  ", t)
