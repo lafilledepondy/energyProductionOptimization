@@ -63,7 +63,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
         for i in I2
     ]
     Pmax_1 = [
-        [data.accessPower1(0, i).pmax()[t] for t in T]
+        [data.accessPower1(scenario, i).pmax()[t] for t in T]
         for i in I1]  # Type 1 units: Pmax_1[i][t]
     Pmax_2 = [
         [data.accessPower2(i).pmax()[t] for t in T]
