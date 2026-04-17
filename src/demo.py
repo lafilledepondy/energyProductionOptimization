@@ -39,6 +39,7 @@ def model_demo(file_name: str):
         from model import runMILPModel_1
         from checker import Checker
 
+    print("Running MILP model on instance:", file_name)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
@@ -57,6 +58,7 @@ def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
         from checker import Checker
         from solution import print_solution
 
+    print("Running heuristic 1 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
@@ -68,7 +70,7 @@ def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
         return
 
     print_solution(sol)
-    Checker(data, sol)
+    Checker(data, sol, scheme)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
@@ -81,6 +83,7 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         from checker import Checker
         from solution import print_solution
 
+    print("Running heuristic 2 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
     # scenario = 1
@@ -93,7 +96,7 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         return
 
     print_solution(sol)
-    Checker(data, sol)
+    Checker(data, sol, scheme)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")

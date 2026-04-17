@@ -47,10 +47,8 @@ def main():
     # model_demo("toy.txt")
     # model_demo()
 
-    # heuristic_1_demo("toy.txt", 1, 63274200.0)
-    # heuristic_1_demo("data0.txt", 1, 8610050657314.8)
-    # heuristic_2_demo("toy.txt", 0, 63274200.0)
-    heuristic_2_demo("data0.txt", 1, 8610050657314.8)
+    # heuristic_2_demo("data0.txt", 0, 8610050657314.8)
+    heuristic_2_demo("data0.txt", 1, 8846806435123.2)
 
 
 if __name__ == "__main__":
