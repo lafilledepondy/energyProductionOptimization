@@ -49,7 +49,6 @@ def model_demo(file_name: str, scenario: int):
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
     print(sol._sols)
     Checker(data, sol, scenario)
-    return sol.value()
 
 def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:

@@ -4,7 +4,6 @@ import subprocess
 import os
 
 from demo import *
-from gui import gui_main
 
 def _print_banner(title, subtitle=None, width=60):
     border = "+" + "=" * (width - 2) + "+"
@@ -14,22 +13,6 @@ def _print_banner(title, subtitle=None, width=60):
     if subtitle:
         print(f"| {subtitle.center(body_width)} |")
     print(border)
-
-def pseudo_main():
-    """
-        * if no arguments are provided, launch the GUI
-        * else call solver.py with the given arguments
-    """
-    if len(sys.argv) == 1:
-        gui_main()
-        return
-    
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    solver_path = os.path.join(script_dir, "solver.py")
-
-    cmd = [sys.executable, solver_path] + sys.argv[1:]
-    result = subprocess.run(cmd)
-    sys.exit(result.returncode)
 
 def main():
     _print_banner(
@@ -45,15 +28,15 @@ def main():
     # read_file_demo()
 
     # model_demo("toy.txt", 0)
-    # sol00 = model_demo("data0.txt", 0)
-    # sol01 = model_demo("data0.txt", 1)
-    # sol10 = model_demo("data1.txt", 0)
-    # sol11 = model_demo("data1.txt", 1)
+    # model_demo("data0.txt", 0)
+    # model_demo("data0.txt", 1)
+    # model_demo("data1.txt", 0)
+    # model_demo("data1.txt", 1)
 
     # heuristic_2_demo("toy.txt", 0, 63274200.0)
-    # heuristic_2_demo("data0.txt", 0, sol00)
-    # heuristic_2_demo("data0.txt", 1,    sol01)
-    heuristic_2_demo("data1.txt", 1,    171850702000)
+    # heuristic_2_demo("data0.txt", 0, 8610050657314.8)
+    # heuristic_2_demo("data0.txt", 1, 8846806435123.2)
+    # heuristic_2_demo("data1.txt", 0,  )
     # heuristic_2_demo("data1.txt", 1, )
 
 
