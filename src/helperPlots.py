@@ -167,7 +167,7 @@ def draw_maintenance_schedule_production():
             max_val = max(vals) if max(vals) > 0 else 1
             # Scaling: 0.4 is the peak height, y is the baseline
             norm_vals = y + (vals / max_val) * 0.4 
-            ax.plot(week_x, norm_vals, color='black', linewidth=1, alpha=0.8)
+            ax.plot(week_x, norm_vals, color='blue', linewidth=1.5, alpha=0.85)
             # Label "prod." like in the reference image
             # ax.text(-2, y + 0.45, "prod.", fontsize=8, ha='right')
 
@@ -190,6 +190,8 @@ def draw_maintenance_schedule_production():
     ax.text(17, -0.05, "Fenêtres de début $K_i$", va='center', fontsize=10)
     ax.add_patch(patches.Rectangle((70, -0.2), 5, 0.3, facecolor='#99ff99', edgecolor='black'))
     ax.text(77, -0.05, "Maintenance choisie ($y_{it}=1$)", va='center', fontsize=10)
+    ax.plot([10, 15], [-0.28, -0.28], color='blue', linewidth=2)
+    ax.text(17, -0.28, "Courbe de production", va='center', fontsize=10)
 
     # --- Formatting ---
     ax.set_xlim(-45, x_limit + 15)
