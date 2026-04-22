@@ -1,3 +1,4 @@
 highspy==1.13.1
-
-# graphviz==0.20.1 # if flow chart is executed
+##### if helperPlot is executed
+# matplotlib==3.7.2 
+# graphviz==0.20.1 
