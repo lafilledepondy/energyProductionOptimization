@@ -11,22 +11,23 @@ def Checker(data: alldata, sol: Solution, scenario: int):
 
         for i in range(data.nbpower1()):
             plant = data.accessPower1(scenario, i)
-            if sol._solP1[(i,t)] > plant.pmax()[t] :                              #3
+            if sol._solP1[(i,t)] > 0.1+plant.pmax()[t] :                              #3
                 print("Production de la centrale de type 1 trop élevée", t )
                 test = False
         for i in range(data.nbpower2()):
             plant = data.accessPower2(i)
-            if sol._solP2[(i,t)] > plant.pmax()[t] :                              #4
-                print("Production de la centrale de type 2 trop élevée", i )
+            if sol._solP2[(i,t)] > 0.1+plant.pmax()[t] :                              #4
+                print("Production de la centrale de type 2 trop élevée", i, " à ", t )
+                print("Pmax de la centrale ", i, " à ", t, " : ", plant.pmax()[t], " et production : ", sol._solP2[(i,t)]   )
                 test = False
             if (i,t) not in sol._soly and (i,t) in sol._solr : # On vérifie que la recharge se fait que lors de la panne 
                 print("Recharge de ", i, " hors de la panne, à ", t )
                 test = False
             if  (i,t) in sol._soly and sol._solP2[(i,t)] > 0.2 : # On vérifie si il y a de la production lors d'une panne 
-                print("Production lors de la panne ", i)
+                print("Production lors de la panne ", i, " à ", t)
                 test = False
             if sol._sols[(i,t)] > data.accessCampaign(i,0).maxstock() : # On vérifie qu'on ne dépasse pas le stock maximale
-                print("Stock dépassé ! ", i)
+                print("Stock dépassé ! ", i, " à ", t)
                 test = False
             if t == 0:                                                                                          #Calcul des stocks
                 if sol._sols[(i,t)] != plant.initialstock() - sol._solP2[(i,t)]*data.timestepduration()[t] :

@@ -44,11 +44,18 @@ def main():
     # === Uncomment to run a specific demo === 
     # read_file_demo()
 
-    # model_demo("toy.txt")
-    # model_demo()
+    # model_demo("toy.txt", 0)
+    # sol00 = model_demo("data0.txt", 0)
+    # sol01 = model_demo("data0.txt", 1)
+    # sol10 = model_demo("data1.txt", 0)
+    # sol11 = model_demo("data1.txt", 1)
 
-    # heuristic_2_demo("data0.txt", 0, 8610050657314.8)
-    heuristic_2_demo("data0.txt", 1, 8846806435123.2)
+    # heuristic_2_demo("toy.txt", 0, 63274200.0)
+    # heuristic_2_demo("data0.txt", 0, sol00)
+    # heuristic_2_demo("data0.txt", 1,    sol01)
+    heuristic_2_demo("data1.txt", 1,    171850702000)
+    # heuristic_2_demo("data1.txt", 1, )
+
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ def read_file_demo(file_name: str = "toy.txt"):
     for i, p2 in enumerate(data.Power2()):
         print(f"Pmax for powerplant2[{i}] ({p2.name()}): {p2.pmax()[:10]}")
 
-def model_demo(file_name: str):
+def model_demo(file_name: str, scenario: int):
     try:
         from .model import runMILPModel_1
         from .checker import Checker
@@ -43,12 +43,13 @@ def model_demo(file_name: str):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    sol = runMILPModel_1(data, outputFlag=True, timeLimit=129600, )
+    sol = runMILPModel_1(data, outputFlag=True, timeLimit=129600, scenario=scenario)
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
     print(sol._sols)
-    Checker(data, sol)
+    Checker(data, sol, scenario)
+    return sol.value()
 
 def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
