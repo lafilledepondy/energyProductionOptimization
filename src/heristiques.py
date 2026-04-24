@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from xml.parsers.expat import model
 import highspy as hp
 
@@ -296,7 +297,9 @@ class MaintenanceHeuristicV1(AbstractMaintenanceHeuristic):
 # -----------------------------
 #  Heuristic 2
 # -----------------------------
-class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic): 
+
+class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
+
     def computePriorityScores(self, data: Readingfile) -> list[tuple[int, float]]:
         w_i_tab = []
         I2 = range(data.nbpower2())
@@ -677,4 +680,129 @@ class MaintenanceHeuristicV2(AbstractMaintenanceHeuristic):
         total_runtime = time.time() - start_time
 
         return Solution(f"HEURISTIC_2_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+
+
+class MaintenanceHeuristicV2_2(MaintenanceHeuristicV2):
+
+    def findFeasibleStartTime(
+        self,
+        data: Readingfile,
+        i: int,
+        demand: list[float],
+        remaining_capacity: list[float], x
+    ) -> tuple[int, int] | None:
+        plant = data.accessPower2(i)
+        T = data.timestep()
+
+        if plant.initialstock() < plant.minstock():
+            return None
+
+        for k_index, campaign in enumerate(plant.Campaigns()):
+            if k_index in x[i] :
+                continue
+            duration = campaign.durationoutage()
+            start_min = max(0, campaign.earlieststop())
+            start_max = min(campaign.lateststop(), T - duration)
+
+            if start_min > start_max:
+                continue
+
+            for t_start in range(start_min, start_max + 1):
+                feasible = True
+                for t in range(t_start, t_start + duration):
+                    if remaining_capacity[t] - plant.pmax()[t] < demand[t]:
+                        feasible = False
+                        break
+
+                if feasible:
+                    return k_index, t_start
+
+        return None
+
+    def scheduleMaintenance(self, data: Readingfile) -> tuple[list[list[int]], list[list[tuple[int, int]]]] | None:
+        T = data.timestep()
+        I2 = data.nbpower2()
+        y_it = [[0 for _ in range(T)] for _ in range(I2)]
+        x_itk = [[] for _ in range(I2)]
+        x = [[] for _ in range(I2)]
+        h2 = MaintenanceHeuristicV2()
+
+        # etape 1
+        scores = h2.computePriorityScores(data)
+        ordered_plants = h2.sortPlantsByPriority(scores)
+
+        # etape 2
+        scenario = data.accessScenario(0)
+        demand = scenario.demands()[:]
+
+        # generation capacity per timestep before scheduling outages
+        remaining_capacity = [0.0 for _ in range(T)]
+        for t in range(T):
+            total_pmax_type1 = sum(
+                data.accessPower1(0, j).pmax()[t] for j in range(data.nbpower1())
+            )
+            total_pmax_type2 = sum(
+                data.accessPower2(j).pmax()[t] for j in range(data.nbpower2())
+            )
+            remaining_capacity[t] = total_pmax_type1 + total_pmax_type2
+
+        # etape 3
+        while True :
+            somme = 0
+            for (i, _) in ordered_plants:
+                result = self.findFeasibleStartTime(data, i, demand, remaining_capacity, x)
+
+                if result is None:
+                    print(f"ÉCHEC : Pas de créneau trouvé pour la centrale {i}. Sortie de fonction.")
+                    somme += 1
+                    continue
+
+                k_index, t_start = result
+                
+                plant = data.accessPower2(i)
+                duration = plant.Campaigns()[k_index].durationoutage()
+                x_itk[i].append((k_index, t_start))
+                x[i].append(k_index)
+
+                for t in range(t_start, t_start + duration):
+                    y_it[i][t] = 1
+                    remaining_capacity[t] -= plant.pmax()[t]
+                print(f"Succès pour centrale {i}")
+            print(somme)
+            if somme == I2 :
+                break
+
+        return y_it, x_itk
     
+    def solve(self, data: Readingfile, scenario: int) -> Solution:
+        start_time = time.time()
+        h2 = MaintenanceHeuristicV2()
+        result = self.scheduleMaintenance(data)
+
+        if result is None:
+            return None
+
+        y_it, x_itk = result
+        production_plan = h2.computeProductionPlanLP(data, scenario, y_it, x_itk)
+        if production_plan is None:
+            return None
+
+        obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+
+        y_sol = {
+            (i, t): 1
+            for i in range(data.nbpower2())
+            for t in range(data.timestep())
+            if y_it[i][t] == 1
+        }
+        x_sol = {
+            (i, k_index, t_start): 1
+            for i, campaigns in enumerate(x_itk)
+            for k_index, t_start in campaigns
+        }
+
+        sol = [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+        total_runtime = time.time() - start_time
+
+        return Solution(f"HEURISTIC_2_2_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+

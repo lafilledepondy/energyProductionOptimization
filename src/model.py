@@ -226,15 +226,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
     #                     name=f""
     #                 )
 
-        # (12)
-        model.addConstr(
-            sum(y_it[i,t] for t in T) 
-            == 
-            sum (DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
-                 for k_idx, k in enumerate(K_i[i]) 
-                 for t in k),
-            name=f"Link_y_x_i{i}"
-        )
+
         
         for k_idx, k in enumerate(K_i[i]):
             # (10) 
@@ -253,6 +245,17 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
                     )
                 else:
                     model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
+
+                
+        # (12)
+        model.addConstr(
+            sum(y_it[i,t] for t in T) 
+            == 
+            sum (DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
+                 for k_idx, k in enumerate(K_i[i]) 
+                 for t in k),
+            name=f"Link_y_x_i{i}"
+        )
 
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()

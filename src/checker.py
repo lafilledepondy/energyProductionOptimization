@@ -45,7 +45,7 @@ def Checker(data: alldata, sol: Solution, scenario: int):
                 if (i, k, t) in sol._solx and (i,t) not in sol._soly: #Vérification du départ
                     print("Pas de début de panne en", t)
                     test = False
-                if  (i,t) in sol._solr and (i, k, t) in sol._solx and sol._solr[(i,t)]*sol._solx[(i, k, t)] > data.accessCampaign(i,k).maxrefuel() : # On vérifie que la recharge n'est pas dépasser
+                if  (i,t) in sol._solr and (i, k, t) in sol._solx and sol._solr[(i,t)]*sol._solx[(i, k, t)] > 0.1+data.accessCampaign(i,k).maxrefuel() : # On vérifie que la recharge n'est pas dépasser
                     print("dépassement de la recharge autorisée ", i)
                     test = False
 

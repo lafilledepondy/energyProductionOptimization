@@ -5,11 +5,13 @@ try:
     from .data import Readingfile
     from .heristiques import MaintenanceHeuristicV1
     from .heristiques import MaintenanceHeuristicV2
+    from .heristiques import MaintenanceHeuristicV2_2
 except ImportError:
     # Support direct script execution (python src/demo.py)
     from data import Readingfile
     from heristiques import MaintenanceHeuristicV1
     from heristiques import MaintenanceHeuristicV2
+    from heristiques import MaintenanceHeuristicV2_2
 
 # TODO: handle when the file path doesn't exist
 
@@ -47,7 +49,8 @@ def model_demo(file_name: str, scenario: int):
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")
-    print(sol._sols)
+    print(sol._solx)
+    print(sol._soly)
     Checker(data, sol, scenario)
 
 def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
@@ -89,6 +92,31 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     # scenario = 1
 
     heuristic = MaintenanceHeuristicV2()
+    sol = heuristic.solve(data, scheme)
+
+    if sol is None:
+        print("Heuristic failed: no feasible solution found.")
+        return
+    print_solution(sol)
+    Checker(data, sol, scheme)
+    if optimal_value is not None:
+        gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
+        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
+
+def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
+    try:
+        from .checker import Checker
+        from .solution import print_solution
+    except ImportError:
+        from checker import Checker
+        from solution import print_solution
+
+    print("Running heuristic 2_2 on instance:", file_name, "with scenario", scheme)
+    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
+    data = Readingfile(str(data_file))
+    # scenario = 1
+
+    heuristic = MaintenanceHeuristicV2_2()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
