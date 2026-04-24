@@ -38,6 +38,48 @@ def flowChart_heu1():
 
     g.render('output/heuristic_1_flowchart', view=True)
 
+
+def flowChart_heu3():
+
+    g = Digraph(format='png')
+    g.attr(rankdir='TB')
+
+    # --- Start / End ---
+    g.attr('node', style='filled', color='seagreen', fillcolor='honeydew', shape='ellipse')
+    g.node('A', 'Début Heuristique V3')
+    g.node('J', 'Solution finale')
+
+    # --- Decision / ML block ---
+    g.attr('node', color='darkorange', fillcolor='papayawhip', shape='diamond')
+    g.node('D', 'Modèle Random Forest chargé ?')
+
+    # --- Actions ---
+    g.attr('node', color='steelblue', fillcolor='aliceblue', shape='box')
+    g.node('B', 'Extraction features centrales type 2')
+    g.node('C', 'Calcul W_i via RandomForestRegressor')
+    g.node('E', 'Chargement mémoire (joblib)')
+    g.node('F', 'Entraînement modèle si absent')
+    g.node('G', 'Tri des centrales selon W_i')
+    g.node('H', 'Planification maintenances (V2 identique)')
+    g.node('I', 'Résolution PL (HiGHS)')
+
+    # --- Edges ---
+    g.edge('A', 'D')
+
+    g.edge('D', 'E', label='Oui')
+    g.edge('D', 'B', label='Non')
+
+    g.edge('E', 'G')
+    g.edge('B', 'F')
+    g.edge('F', 'C')
+    g.edge('C', 'G')
+
+    g.edge('G', 'H')
+    g.edge('H', 'I')
+    g.edge('I', 'J')
+
+    g.render('output/heuristic_ML+MILP_flowchart', view=True)    
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -125,10 +167,28 @@ def draw_maintenance_schedule_production():
     # Production values (normalized to fit within the unit's vertical space)
     # Max height for curve will be ~0.4 units above the baseline
     prod_data = {
-        4: [0, 292.1, 840, 840, 0, 700, 840, 490],       # Gaz
-        3: [0, 560, 560, 560, 542.1, 560, 560, 560],    # Charbon
-        2: [1050, 197.9, 0, 0, 360, 150, 10, 0],        # Nucl 1
-        1: [360, 360, 10, 10, 507.91, 0, 0, 360]        # Nucl 2
+        4: [
+            70, 90, 100, 100, 100, 60, 100, 100, 100, 0,
+            100, 100, 100, 100, 70, 90, 100, 0, 100, 60,
+            100, 100, 100, 100, 100, 100, 100, 100, 70, 90,
+            100, 100, 100, 60, 100, 100, 100, 100, 100, 100,
+            100, 100, 70, 90, 100, 100, 100, 60, 100, 100, 100
+        ],       # Gaz
+        3: [80]*51,     # Charbon
+        2: [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 10,
+            0, 0, 47.0, 10, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            50, 30, 10, 0, 40, 10, 20, 50, 60, 70,
+            50, 10, 0, 0, 50, 30, 10, 0, 40, 10, 20
+        ],        # Nucl 1
+        1: [
+            0, 0, 50, 30, 10, 0, 40, 10, 20, 140,
+            60, 70, 2.916, 0, 0, 0, 50, 130, 10, 0,
+            40, 10, 20, 50, 60, 70, 50, 10, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],       # Nucl 2
     }
         
     units = [
@@ -144,9 +204,9 @@ def draw_maintenance_schedule_production():
     x_limit = t_max + 10
     weeks_ticks = range(0, 134, 7)
 
-    # --- Data from LaTeX Table (Weeks 1 to 8) ---
-    # We use the midpoint of each week for the x-axis plot points
-    week_x = np.array([3.5, 10.5, 17.5, 24.5, 31.5, 38.5, 45.5, 52.5])
+    # --- Time steps for the 51 production samples ---
+    # Use one x-coordinate per sample so every production series plots correctly.
+    week_x = np.arange(0.5, 51.5, 1.0)
 
     fig, ax = plt.subplots(figsize=(12, 8))
 
@@ -167,7 +227,7 @@ def draw_maintenance_schedule_production():
             max_val = max(vals) if max(vals) > 0 else 1
             # Scaling: 0.4 is the peak height, y is the baseline
             norm_vals = y + (vals / max_val) * 0.4 
-            ax.plot(week_x, norm_vals, color='blue', linewidth=1.5, alpha=0.85)
+            ax.plot(week_x, norm_vals, color='blue', linewidth=1.5, alpha=0.85, zorder=4)
             # Label "prod." like in the reference image
             # ax.text(-2, y + 0.45, "prod.", fontsize=8, ha='right')
 
@@ -205,6 +265,7 @@ def draw_maintenance_schedule_production():
     
 def main():
     # flowChart_heu1()
+    # flowChart_heu3()
     # draw_maintenance_schedule()
     draw_maintenance_schedule_production()
 
