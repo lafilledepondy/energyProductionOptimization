@@ -1,21 +1,12 @@
 from pathlib import Path
 from projectUtils import gapEntreOptHeuriEtMILP
 
-try:
-    from .data import Readingfile
-    from .heristiques import MaintenanceHeuristicV1
-    from .heristiques import MaintenanceHeuristicV2
-    from .heristiques import MaintenanceHeuristicV2_2
-except ImportError:
-    # Support direct script execution (python src/demo.py)
-    from data import Readingfile
-    from heristiques import MaintenanceHeuristicV1
-    from heristiques import MaintenanceHeuristicV2
-    from heristiques import MaintenanceHeuristicV2_2
-
-# TODO: handle when the file path doesn't exist
 
 def read_file_demo(file_name: str = "toy.txt"):
+    try:
+        from .data import Readingfile
+    except ImportError:
+        from data import Readingfile   
     # TODO: properly 
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
@@ -35,9 +26,11 @@ def read_file_demo(file_name: str = "toy.txt"):
 
 def model_demo(file_name: str, scenario: int):
     try:
+        from .data import Readingfile
         from .model import runMILPModel_1
         from .checker import Checker
     except ImportError:
+        from data import Readingfile
         from model import runMILPModel_1
         from checker import Checker
 
@@ -53,45 +46,23 @@ def model_demo(file_name: str, scenario: int):
     print(sol._soly)
     Checker(data, sol, scenario)
 
-def heuristic_1_demo(file_name: str, scheme:int, optimal_value: float = None):
-    try:
-        from .checker import Checker
-        from .solution import print_solution
-    except ImportError:
-        from checker import Checker
-        from solution import print_solution
-
-    print("Running heuristic 1 on instance:", file_name, "with scenario", scheme)
-    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
-    data = Readingfile(str(data_file))
-
-    heuristic = MaintenanceHeuristicV1()
-    sol = heuristic.solve(data, scheme)
-
-    if sol is None:
-        print("Heuristic failed: no feasible solution found.")
-        return
-
-    print_solution(sol)
-    Checker(data, sol, scheme)
-    if optimal_value is not None:
-        gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
-        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
-
 def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
+        from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
+        from .heristiques import MaintenanceHeuristicV2_basic
     except ImportError:
+        from data import Readingfile
         from checker import Checker
         from solution import print_solution
+        from heristiques import MaintenanceHeuristicV2_basic
 
     print("Running heuristic 2 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
-    # scenario = 1
 
-    heuristic = MaintenanceHeuristicV2()
+    heuristic = MaintenanceHeuristicV2_basic()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -105,18 +76,22 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
 
 def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
+        from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
+        from .heristiques import MaintenanceHeuristicV2MultiCampaign
     except ImportError:
+        from data import Readingfile
         from checker import Checker
         from solution import print_solution
+        from heristiques import MaintenanceHeuristicV2MultiCampaign
 
     print("Running heuristic 2_2 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
     # scenario = 1
 
-    heuristic = MaintenanceHeuristicV2_2()
+    heuristic = MaintenanceHeuristicV2MultiCampaign()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -129,3 +104,32 @@ def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
 
+def heuristic_2_RF_demo(file_name: str, scheme:int, optimal_value: float = None):
+    try:
+        from .data import Readingfile
+        from .checker import Checker
+        from .solution import print_solution
+        from .heristiques import MaintenanceHeuristicV2_RF
+    except ImportError:
+        from data import Readingfile
+        from checker import Checker
+        from solution import print_solution
+        from heristiques import MaintenanceHeuristicV2_RF
+
+    print("Running heuristic 2_RF on instance:", file_name, "with scenario", scheme)
+    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
+    data = Readingfile(str(data_file))
+    # scenario = 1
+
+    heuristic = MaintenanceHeuristicV2_RF()
+    sol = heuristic.solve(data, scheme)
+
+    if sol is None:
+        print("Heuristic failed: no feasible solution found.")
+        return
+
+    print_solution(sol)
+    Checker(data, sol, scheme)
+    if optimal_value is not None:
+        gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
+        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
