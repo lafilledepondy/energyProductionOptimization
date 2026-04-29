@@ -806,7 +806,7 @@ class MaintenanceHeuristicV2MultiCampaign(MaintenanceHeuristicV2_basic):
         sol = [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
         total_runtime = time.time() - start_time
 
-        return Solution(f"HEURISTIC_2_2_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+        return Solution(f"HEURISTIC_2_MultiCampaign_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
 
 # -----------------------------
 #  Heuristic 2_1
@@ -815,7 +815,6 @@ class MaintenanceHeuristicV2MultiCampaign(MaintenanceHeuristicV2_basic):
 class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
     """
     heuristic improved version using Random Forest models
-
     Pipeline:
     1) Predict priority order of type-2 plants (RandomForestRegressor)
     2) Predict promising maintenance start dates (RandomForestClassifier)
@@ -873,4 +872,4 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
 
     def solve(self, data: Readingfile, scenario: int) -> Solution:
             # return Solution(f"HEURISTIC_3_MEMORY_{status}", obj, db, runtime + lp_rt, [p1, p2, y_sol, r, s, x_sol])
-            return Solution(f"HEURISTIC_3_MEMORY_", 0, 0, 0, [0, 0, 0, 0, 0, 0])
+            return Solution(f"HEURISTIC_2_RF_MEMORY_", 0, 0, 0, [0, 0, 0, 0, 0, 0])
