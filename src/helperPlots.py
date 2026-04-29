@@ -39,46 +39,64 @@ def flowChart_heu1():
     g.render('output/heuristic_1_flowchart', view=True)
 
 
-def flowChart_heu3():
+def flowChart_heu1_1():
 
     g = Digraph(format='png')
     g.attr(rankdir='TB')
 
     # --- Start / End ---
     g.attr('node', style='filled', color='seagreen', fillcolor='honeydew', shape='ellipse')
-    g.node('A', 'Début Heuristique V3')
-    g.node('J', 'Solution finale')
+    g.node('A', 'Début Heuristique 2 améliorée (Random Forest)')
+    # g.node('N', 'Solution finale')
 
-    # --- Decision / ML block ---
+    # --- Decisions ---
     g.attr('node', color='darkorange', fillcolor='papayawhip', shape='diamond')
-    g.node('D', 'Modèle Random Forest chargé ?')
+    g.node('B', 'Modèle priorité en cache ?')
+    g.node('F', 'Modèle dates en cache ?')
+    g.node('K', 'Créneau faisable trouvé ?')
 
     # --- Actions ---
     g.attr('node', color='steelblue', fillcolor='aliceblue', shape='box')
-    g.node('B', 'Extraction features centrales type 2')
-    g.node('C', 'Calcul W_i via RandomForestRegressor')
-    g.node('E', 'Chargement mémoire (joblib)')
-    g.node('F', 'Entraînement modèle si absent')
-    g.node('G', 'Tri des centrales selon W_i')
-    g.node('H', 'Planification maintenances (V2 identique)')
-    g.node('I', 'Résolution PL (HiGHS)')
+    g.node('C', 'Construction features centrales type 2')
+    g.node('D', 'Entraînement RandomForestRegressor')
+    g.node('E', 'Prédiction scores W_i et tri centrales')
+
+    g.node('G', 'Construction dataset dates maintenance')
+    g.node('H', 'Entraînement RandomForestClassifier')
+    g.node('I', 'Prédiction meilleurs t_start candidats')
+
+    g.node('J', 'Test capacité restante / faisabilité')
+    g.node('L', '(pareil que V2_basic...)')
+    # g.node('L', 'Fixer x_itk et y_it')
+    # g.node('M', 'Résolution PL production + recharge (HiGHS)')
 
     # --- Edges ---
-    g.edge('A', 'D')
+    g.edge('A', 'B')
 
-    g.edge('D', 'E', label='Oui')
-    g.edge('D', 'B', label='Non')
+    # Priority model
+    g.edge('B', 'E', label='Oui')
+    g.edge('B', 'C', label='Non')
+    g.edge('C', 'D')
+    g.edge('D', 'E')
 
-    g.edge('E', 'G')
-    g.edge('B', 'F')
-    g.edge('F', 'C')
-    g.edge('C', 'G')
-
+    # Start-date model
+    g.edge('E', 'F')
+    g.edge('F', 'I', label='Oui')
+    g.edge('F', 'G', label='Non')
     g.edge('G', 'H')
     g.edge('H', 'I')
-    g.edge('I', 'J')
 
-    g.render('output/heuristic_ML+MILP_flowchart', view=True)    
+    # Scheduling loop
+    g.edge('I', 'J')
+    g.edge('J', 'K')
+    g.edge('K', 'L', label='Oui')
+    g.edge('K', 'I', label='Non')
+
+    # Final LP
+    # g.edge('L', 'M')
+    # g.edge('M', 'N')
+
+    g.render('output/heuristic_RF+MILP_flowchart', view=True)   
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -265,9 +283,9 @@ def draw_maintenance_schedule_production():
     
 def main():
     # flowChart_heu1()
-    # flowChart_heu3()
+    flowChart_heu1_1()
     # draw_maintenance_schedule()
-    draw_maintenance_schedule_production()
+    # draw_maintenance_schedule_production()
 
 if __name__ == "__main__":
     main()
