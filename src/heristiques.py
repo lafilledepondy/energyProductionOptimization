@@ -869,7 +869,203 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
         scores = self.computePriorityScores(data)
         y = np.array([score for (_, score) in scores])
         return y
+    
+    def trainPriorityModel(self, data: Readingfile):
+        from sklearn.ensemble import RandomForestRegressor
+        X = self.buildPriorityFeatures(data)
+        y = self.buildPriorityTargets(data)
+
+        # n_estimators=100: good bias/variance compromise
+        model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=8,        # avoid overfitting
+            random_state=42,
+            n_jobs=-1           # use all CPU cores
+        )
+        model.fit(X, y)
+        return model    
+
+    def predictPriorityOrder(self, data: Readingfile):
+        model = self.memory.cache(self.trainPriorityModel)(data)
+        X = self.buildPriorityFeatures(data)
+        preds = model.predict(X)
+        ranking = [(i, preds[i]) for i in range(data.nbpower2())]
+        ranking.sort(key=lambda x: x[1], reverse=True) # highest score first
+        return ranking
+
+    def buildStartDateDataset(self, data: Readingfile, i: int):
+        """
+        Label:
+        1 if feasible according to capacity screening
+        0 otherwise
+        """
+        plant = data.accessPower2(i)
+        T = data.timestep()
+        demand = data.accessScenario(0).demands()
+        X = []
+        y = []
+        total_capacity = []
+
+        for t in range(T):
+            cap1 = sum(
+                data.accessPower1(0, j).pmax()[t]
+                for j in range(data.nbpower1())
+            )
+            cap2 = sum(
+                data.accessPower2(j).pmax()[t]
+                for j in range(data.nbpower2())
+            )
+            total_capacity.append(cap1 + cap2)
+
+        for k_index, campaign in enumerate(plant.Campaigns()):
+            duration = campaign.durationoutage()
+            start_min = max(0, campaign.earlieststop())
+            start_max = min(campaign.lateststop(), T - duration)
+
+            for t_start in range(start_min, start_max + 1):
+
+                # feature values
+                local_demand = np.mean(demand[t_start:t_start + duration]    )
+
+                slack = np.mean(total_capacity[t_start:t_start + duration]) - local_demand
+
+                X.append([k_index, t_start, duration, local_demand, slack])
+
+                # simple feasibility label
+                feasible = 1
+                for t in range(t_start, t_start + duration):
+                    if total_capacity[t] - plant.pmax()[t] < demand[t]:
+                        feasible = 0
+                        break
+
+                y.append(feasible)
+
+        return np.array(X), np.array(y)
+
+    def trainStartDateModel(self, data: Readingfile, i: int):
+        from sklearn.ensemble import RandomForestClassifier
+        X, y = self.buildStartDateDataset(data, i)
+
+        if len(np.unique(y)) <= 1: # in case all labels same are 1 same model would be unstable
+            return None
+
+        model = RandomForestClassifier(
+            n_estimators=80,   # enough trees, still fast
+            max_depth=8,
+            random_state=42,
+            n_jobs=-1 
+        )
+
+        model.fit(X, y)
+        return model
+    
+    def predictBestStartDates(self, data: Readingfile, i: int):
+        model = self.memory.cache(self.trainStartDateModel)(data, i)
+        X, _ = self.buildStartDateDataset(data, i)
+
+        if model is None:  # fallback if only one class in labels
+            ranked = list(range(len(X)))
+            return ranked, X
+
+        proba = model.predict_proba(X)[:, 1]
+        ranked = list(range(len(X)))
+        ranked.sort(key=lambda idx: proba[idx], reverse=True)
+        return ranked, X    
+    
+    def scheduleMaintenance(self, data: Readingfile):
+        T = data.timestep()
+        I2 = data.nbpower2()
+
+        y_it = [[0 for _ in range(T)] for _ in range(I2)]
+        x_itk = [[] for _ in range(I2)]
+
+        demand = data.accessScenario(0).demands()[:]
+
+        remaining_capacity = [0.0 for _ in range(T)]
+        for t in range(T):
+            cap1 = sum(
+                data.accessPower1(0, j).pmax()[t]
+                for j in range(data.nbpower1())
+            )
+            cap2 = sum(
+                data.accessPower2(j).pmax()[t]
+                for j in range(data.nbpower2())
+            )
+            remaining_capacity[t] = cap1 + cap2
+
+        # 1. RF ranking
+        ordered_plants = self.predictPriorityOrder(data)
+
+        # 2. schedule each plant
+        for (i, _) in ordered_plants:
+
+            ranked_rows, X = self.predictBestStartDates(data, i)
+
+            plant = data.accessPower2(i)
+            placed = False
+
+            # test only top candidates first
+            for row_id in ranked_rows[:10]:
+
+                k_index = int(X[row_id][0])
+                t_start = int(X[row_id][1])
+                duration = int(X[row_id][2])
+
+                feasible = True
+
+                for t in range(t_start, t_start + duration):
+                    if remaining_capacity[t] - plant.pmax()[t] < demand[t]:
+                        feasible = False
+                        break
+
+                if feasible:
+                    x_itk[i].append((k_index, t_start))
+
+                    for t in range(t_start, t_start + duration):
+                        y_it[i][t] = 1
+                        remaining_capacity[t] -= plant.pmax()[t]
+
+                    placed = True
+                    break
+
+            if not placed:
+                print(f"RF failed to place plant {i}")
+
+        return y_it, x_itk    
 
     def solve(self, data: Readingfile, scenario: int) -> Solution:
-            # return Solution(f"HEURISTIC_3_MEMORY_{status}", obj, db, runtime + lp_rt, [p1, p2, y_sol, r, s, x_sol])
-            return Solution(f"HEURISTIC_2_RF_MEMORY_", 0, 0, 0, [0, 0, 0, 0, 0, 0])
+        start_time = time.time()
+
+        # scheduling by RF
+        y_it, x_itk = self.scheduleMaintenance(data)
+
+        # inherited LP production plan
+        production_plan = self.computeProductionPlanLP(
+            data, scenario, y_it, x_itk
+        )
+
+        obj_value, dual_bound, lp_runtime, status, \
+        p1_sol, p2_sol, r_sol, s_sol = production_plan
+
+        y_sol = {
+            (i, t): 1
+            for i in range(data.nbpower2())
+            for t in range(data.timestep())
+            if y_it[i][t] == 1
+        }
+
+        x_sol = {
+            (i, k_index, t_start): 1
+            for i, campaigns in enumerate(x_itk)
+            for k_index, t_start in campaigns
+        }
+
+        total_runtime = time.time() - start_time
+
+        return Solution(
+            f"HEURISTIC_2_RF{status}",
+            obj_value,
+            dual_bound,
+            total_runtime + lp_runtime,
+            [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+        )
