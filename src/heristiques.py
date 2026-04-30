@@ -1068,3 +1068,38 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
             total_runtime + lp_runtime,
             [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
         )
+
+# -----------------------------
+#  Heuristic 3 (dichotomie)
+# -----------------------------
+import math
+class MaintenanceHeuristicV3(AbstractMaintenanceHeuristic):
+    def initial_b():
+        pass
+
+    #  Dichotomie 7.2.1 cours de remediation de Optim
+    def dichotomie(f, a, b, l, epsilon, max_iter):
+        k = 1
+        ak, bk = a, b
+        sequence = [(ak, bk)]
+        
+        while (bk - ak) > l and k <= max_iter:
+            mid = (ak + bk) / 2.0
+            x1 = mid - epsilon
+            x2 = mid + epsilon
+            
+            if f(x1) < f(x2):
+                bk = x2
+            else:
+                ak = x1
+                
+            sequence.append((round(ak, 3), round(bk, 3)))
+            k += 1
+            
+        return sequence
+    
+    def solve(self, data: Readingfile, scenario: int) -> Solution:
+        # TODO
+
+        # self.dichotomie(f, a=0, b, )
+        pass
