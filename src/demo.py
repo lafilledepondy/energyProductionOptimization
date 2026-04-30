@@ -38,7 +38,7 @@ def model_demo(file_name: str, scenario: int):
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    sol = runMILPModel_1(data, outputFlag=True, timeLimit=129600, scenario=scenario)
+    sol = runMILPModel_1(data, outputFlag=True, timeLimit=7200, scenario=scenario)
     
     print(f"Solution: {sol._status}, Objective: {sol.value()}")
     print(f"Dual Bound value: {sol._dualBound}, Runtime: {sol._runtime} seconds")

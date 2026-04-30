@@ -436,7 +436,7 @@ class MaintenanceHeuristicV2_basic(AbstractMaintenanceHeuristic):
 
         return y_it, x_itk
 
-    def computeProductionPlanLP(self, data: Readingfile, scenario: int, y_it: list[list[int]], x_itk: list[list[tuple[int, int]]]) :
+    def computeProductionPlanLP(self, data: Readingfile, scenario: int, y_it: list[list[int]], x_itk: list[list[tuple[int, int]]], start_time : float) :
         # ======= MODEL =======
         model = hp.Highs()
         model.setOptionValue("output_flag", False)
@@ -611,7 +611,6 @@ class MaintenanceHeuristicV2_basic(AbstractMaintenanceHeuristic):
                     model.addConstr(r_it[i, t] == 0, name=f"No_refuel_i{i}_t{t}")
         
         # ===== EXTRACT SOLUTION =====
-        start_time = time.time()
         model.run()
         runtime = time.time() - start_time
 
@@ -658,7 +657,7 @@ class MaintenanceHeuristicV2_basic(AbstractMaintenanceHeuristic):
             return None
 
         y_it, x_itk = result
-        production_plan = self.computeProductionPlanLP(data, scenario, y_it, x_itk)
+        production_plan = self.computeProductionPlanLP(data, scenario, y_it, x_itk, start_time)
         if production_plan is None:
             return None
 
@@ -785,7 +784,7 @@ class MaintenanceHeuristicV2MultiCampaign(MaintenanceHeuristicV2_basic):
             return None
 
         y_it, x_itk = result
-        production_plan = h2.computeProductionPlanLP(data, scenario, y_it, x_itk)
+        production_plan = h2.computeProductionPlanLP(data, scenario, y_it, x_itk, start_time)
         if production_plan is None:
             return None
 

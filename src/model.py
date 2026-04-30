@@ -6,7 +6,7 @@ from solution import *
 from data import *
 
 
-def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenario: int = 0) -> Solution:
+def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenario: int ) -> Solution:
     # ======= MODEL =======
     model = hp.Highs()
     model.setOptionValue('time_limit', timeLimit)
