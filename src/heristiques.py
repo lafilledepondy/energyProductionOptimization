@@ -1108,54 +1108,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             for k in range(len(RefCost_ik[i_idx])):
                 b = max(b, RefCost_ik[i_idx][k])
 
-        return a, b  
-
-    def dual_function(self, mu, data, scenario):
-        total = 0.0
-
-        # \sum_{i \in I_1} \sum_{t \in T} ( Cost_{it} * D_t - mu ) * p_{it}
-        for i in self.I1:
-            for t in self.T:
-                cost = self.Cost_it[i][t] * self.D_t[t] - mu
-
-                # optimal p_it
-                if cost < 0:
-                    p = data.accessPower1(scenario, i).pmax()[t]
-                else:
-                    p = 0.0
-
-                total += cost * p        
-        
-        # \sum_{i \in I_2} 
-        #       [ \sum_{k \in K_{i}} ( RefCost_{ik} * \sum_{t \in k} r_{it} ) 
-        #           - \sum_{t \in T} mu * p_{it} ]
-        for i_idx, i in enumerate(self.I2):
-            for t in self.T:
-                cost_prod = -mu  # since no production cost in nuclear term
-
-                if cost_prod < 0:
-                    p = data.accessPower2(i).pmax()[t]
-                else:
-                    p = 0.0
-
-                total += cost_prod * p
-           # refueling cost (always positive contribution)
-            for k in range(len(data.accessPower2(i).Campaigns())):
-                camp = data.accessCampaign(i, k)
-
-                ref_cost = float(camp.refuelingcost())
-
-                # relaxed refuel contribution based on campaign size
-                r_sum = float(camp.maxrefuel()) if camp.maxrefuel() > 0 else float(camp.durationoutage())
-
-                total += ref_cost * r_sum                
-
-        # \sum_{t \in T} mu * Dem_t
-        Dem_t = data.accessScenario(scenario).demands()
-        for t in self.T:
-            total += mu * Dem_t[t]
-
-        return total
+        return a, b   
     
     #  Dichotomie 7.2.1 cours de remediation de Optim
     @staticmethod # this is added or else it will throw error since we call it without self in solve method
@@ -1189,61 +1142,13 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
 
         mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=50)
 
-        solution_p = {}
-        solution_y = {}
-        solution_r = {}
-        solution_s = {}
-        solution_x = {}
-
-        for i in self.I1:
-            for t in self.T:
-                if self.Cost_it[i][t] * self.D_t[t] < mu_star:
-                    solution_p[(i, t)] = data.accessPower1(scenario, i).pmax()[t]
-                else:
-                    solution_p[(i, t)] = 0.0
-
-        for i in self.I2:
-            for t in self.T:
-                solution_p[(i, t)] = 0.0
-                solution_y[(i, t)] = 0
-
-                solution_r[(i, t)] = 0.0
-                solution_s[(i, t)] = 0.0
-
-            for k in range(len(data.accessPower2(i).Campaigns())):
-                for t in self.T:
-                    solution_x[(i, k, t)] = 0
-
-        obj_value = 0.0
-
-        for i in self.I1:
-            for t in self.T:
-                obj_value += self.Cost_it[i][t] * solution_p[(i, t)] * self.D_t[t]
-
-        for i in self.I2:
-            for k in range(len(data.accessPower2(i).Campaigns())):
-                camp = data.accessCampaign(i, k)
-                obj_value += float(camp.refuelingcost()) * float(camp.maxrefuel())
-
-        dual_bound = self.dual_function(mu_star, data, scenario)
-
-        total_runtime = time.time() - start_time
-
-        status = "_OK"
-
-        p1_sol = {k: v for k, v in solution_p.items() if k[0] in self.I1}
-        p2_sol = {k: v for k, v in solution_p.items() if k[0] in self.I2}
-
-        y_sol = solution_y
-        r_sol = solution_r
-        s_sol = solution_s
-        x_sol = solution_x
-
-        return Solution(
-            f"HEURISTIC_3_DICHOTOMY{status}",
-            obj_value,
-            dual_bound,
-            total_runtime,
-            [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
-        )
+        return Solution("HEURISTIC_3_DICHOTOMY", 
+                        0, 0, 0, [])
+        # return Solution(
+        #     f"HEURISTIC_3_DICHOTOMY{status}",
+        #     obj_value,
+        #     dual_bound,
+        #     total_runtime,
+        #     [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+        # )
             
