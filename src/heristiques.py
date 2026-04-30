@@ -1073,13 +1073,94 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
 #  Heuristic 3 (dichotomie)
 # -----------------------------
 import math
-class MaintenanceHeuristicV3(AbstractMaintenanceHeuristic):
-    def initial_b():
-        pass
+class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
+    def __init__(self):
+        self.I1 = None
+        self.I2 = None
+        self.T = None
+        self.Cost_it = None
+        self.D_t = None
 
+    def set_data_attrs(self, data: Readingfile, scenario: int):
+        self.I1 = range(data.nbpower1())
+        self.I2 = range(data.nbpower2())
+        self.T = range(data.timestep()) 
+        self.Cost_it = [ [data.accessPower1(scenario, i).cost()[t] for t in self.T] for i in self.I1]  # Cost_it[i][t]
+        self.D_t = data.timestepduration()
+
+    def initial_ab(self, data):
+        a = 0.0
+        b = 0.0
+
+        RefCost_ik = [
+            [
+                float(data.accessCampaign(i, k).refuelingcost())
+                for k in range(len(data.accessPower2(i).Campaigns()))
+            ]
+            for i in self.I2
+        ]
+
+        for i in self.I1:
+            for t in self.T:
+                b = max(b, self.Cost_it[i][t] * self.D_t[t])
+
+        for i_idx, i in enumerate(self.I2):
+            for k in range(len(RefCost_ik[i_idx])):
+                b = max(b, RefCost_ik[i_idx][k])
+
+        return a, b  
+
+    def dual_function(self, mu, data, scenario):
+        total = 0.0
+
+        # \sum_{i \in I_1} \sum_{t \in T} ( Cost_{it} * D_t - mu ) * p_{it}
+        for i in self.I1:
+            for t in self.T:
+                cost = self.Cost_it[i][t] * self.D_t[t] - mu
+
+                # optimal p_it
+                if cost < 0:
+                    p = data.accessPower1(scenario, i).pmax()[t]
+                else:
+                    p = 0.0
+
+                total += cost * p        
+        
+        # \sum_{i \in I_2} 
+        #       [ \sum_{k \in K_{i}} ( RefCost_{ik} * \sum_{t \in k} r_{it} ) 
+        #           - \sum_{t \in T} mu * p_{it} ]
+        for i_idx, i in enumerate(self.I2):
+            for t in self.T:
+                cost_prod = -mu  # since no production cost in nuclear term
+
+                if cost_prod < 0:
+                    p = data.accessPower2(i).pmax()[t]
+                else:
+                    p = 0.0
+
+                total += cost_prod * p
+           # refueling cost (always positive contribution)
+            for k in range(len(data.accessPower2(i).Campaigns())):
+                camp = data.accessCampaign(i, k)
+
+                ref_cost = float(camp.refuelingcost())
+
+                # relaxed refuel contribution based on campaign size
+                r_sum = float(camp.maxrefuel()) if camp.maxrefuel() > 0 else float(camp.durationoutage())
+
+                total += ref_cost * r_sum                
+
+        # \sum_{t \in T} mu * Dem_t
+        Dem_t = data.accessScenario(scenario).demands()
+        for t in self.T:
+            total += mu * Dem_t[t]
+
+        return total
+    
     #  Dichotomie 7.2.1 cours de remediation de Optim
+    @staticmethod # this is added or else it will throw error since we call it without self in solve method
     def dichotomie(f, a, b, l, epsilon, max_iter):
-        k = 1
+        k = 0
         ak, bk = a, b
         sequence = [(ak, bk)]
         
@@ -1096,10 +1177,73 @@ class MaintenanceHeuristicV3(AbstractMaintenanceHeuristic):
             sequence.append((round(ak, 3), round(bk, 3)))
             k += 1
             
-        return sequence
+        return ((ak + bk)/2.0), sequence
     
     def solve(self, data: Readingfile, scenario: int) -> Solution:
-        # TODO
+        start_time = time.time()
 
-        # self.dichotomie(f, a=0, b, )
-        pass
+        self.set_data_attrs(data, scenario)
+
+        a, b = self.initial_ab(data)
+        f = lambda mu: self.dual_function(mu, data, scenario)
+
+        mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=50)
+
+        solution_p = {}
+        solution_y = {}
+        solution_r = {}
+        solution_s = {}
+        solution_x = {}
+
+        for i in self.I1:
+            for t in self.T:
+                if self.Cost_it[i][t] * self.D_t[t] < mu_star:
+                    solution_p[(i, t)] = data.accessPower1(scenario, i).pmax()[t]
+                else:
+                    solution_p[(i, t)] = 0.0
+
+        for i in self.I2:
+            for t in self.T:
+                solution_p[(i, t)] = 0.0
+                solution_y[(i, t)] = 0
+
+                solution_r[(i, t)] = 0.0
+                solution_s[(i, t)] = 0.0
+
+            for k in range(len(data.accessPower2(i).Campaigns())):
+                for t in self.T:
+                    solution_x[(i, k, t)] = 0
+
+        obj_value = 0.0
+
+        for i in self.I1:
+            for t in self.T:
+                obj_value += self.Cost_it[i][t] * solution_p[(i, t)] * self.D_t[t]
+
+        for i in self.I2:
+            for k in range(len(data.accessPower2(i).Campaigns())):
+                camp = data.accessCampaign(i, k)
+                obj_value += float(camp.refuelingcost()) * float(camp.maxrefuel())
+
+        dual_bound = self.dual_function(mu_star, data, scenario)
+
+        total_runtime = time.time() - start_time
+
+        status = "_OK"
+
+        p1_sol = {k: v for k, v in solution_p.items() if k[0] in self.I1}
+        p2_sol = {k: v for k, v in solution_p.items() if k[0] in self.I2}
+
+        y_sol = solution_y
+        r_sol = solution_r
+        s_sol = solution_s
+        x_sol = solution_x
+
+        return Solution(
+            f"HEURISTIC_3_DICHOTOMY{status}",
+            obj_value,
+            dual_bound,
+            total_runtime,
+            [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+        )
+            
