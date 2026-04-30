@@ -1132,6 +1132,49 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             
         return ((ak + bk)/2.0), sequence
     
+    def dual_function(self, mu, data, scenario):
+        total = 0.0
+        Dem_t = data.accessScenario(scenario).demands()
+
+        for i in self.I1:
+            for t in self.T:
+                gain = self.Cost_it[i][t] * self.D_t[t] - mu
+
+                if gain < 0:
+                    p = data.accessPower1(scenario, i).pmax()[t]
+                else:
+                    p = 0.0
+
+                total += gain * p
+
+        for i in self.I2:
+            pmax = data.accessPower2(i).pmax()
+            for t in self.T:
+                gain = -mu
+                if gain < 0:
+                    p = pmax[t]
+                else:
+                    p = 0.0
+
+                total += gain * p
+
+            for k in range(len(data.accessPower2(i).Campaigns())):
+                camp = data.accessCampaign(i, k)
+                ref_cost = float(camp.refuelingcost())
+                incentive = mu * camp.durationoutage()
+
+                if incentive > ref_cost:
+                    r = camp.maxrefuel()
+                else:
+                    r = 0.0
+
+                total += ref_cost * r
+
+        for t in self.T:
+            total += mu * Dem_t[t]
+
+        return total
+
     def solve(self, data: Readingfile, scenario: int) -> Solution:
         start_time = time.time()
 
@@ -1142,13 +1185,9 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
 
         mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=50)
 
+        dual_value = f(mu_star)
+    
+
         return Solution("HEURISTIC_3_DICHOTOMY", 
                         0, 0, 0, [])
-        # return Solution(
-        #     f"HEURISTIC_3_DICHOTOMY{status}",
-        #     obj_value,
-        #     dual_bound,
-        #     total_runtime,
-        #     [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
-        # )
             
