@@ -145,7 +145,7 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
         from solution import print_solution
         from heristiques import MaintenanceHeuristicV3_dichotomie
 
-    print("Running heuristic 2_RF on instance:", file_name, "with scenario", scheme)
+    print("Running heuristic 3_dichotomie on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
     

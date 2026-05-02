@@ -19,21 +19,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
     W = range(data.weeks()) 
     campaign_ids_by_unit = [range(len(data.accessPower2(i).Campaigns())) for i in I2]
     horizon_last_t = data.timestep() - 1
-    # K_i = [  # 3D [ [ [range k_e à k_l] [...] by campagne ] [ []  [] ] by units]
-    #     [
-    #         list(
-    #             range(
-    #                 max(0, data.accessCampaign(i, k).earlieststop()), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
-    #                 min(horizon_last_t, data.accessCampaign(i, k).lateststop()) + 1, # same here
-    #                 # data.accessCampaign(i, k).earlieststop(), # j'ai ajoute le max pour eviter les valeurs negatives bcse it was giving me errors
-    #                 # data.accessCampaign(i, k).lateststop() + 1, # same here
-    #             )
-    #         )
-    #         for k in campaign_ids_by_unit[i]
-    #     ]
-    #     for i in I2
-    # ]
-
     K_i = []
     for i in I2:
         campaigns_i = []
@@ -155,7 +140,6 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
         sense=hp.ObjSense.kMinimize
     )        
 
-
     # ======= CONSTRAINTS =======
     for t in T:
         # (2) 
@@ -235,7 +219,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
                 name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
             )
             for t in k:
-                # (13)
+                # (13) --> (12) in the report
                 if t + DA_ik[i][k_idx] <= len(T):
                     model.addConstr(
                         sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
@@ -247,7 +231,7 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
                     model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
 
                 
-        # (12)
+        # (12) --> (11) in the report 
         model.addConstr(
             sum(y_it[i,t] for t in T) 
             == 
