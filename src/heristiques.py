@@ -1057,7 +1057,7 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
 # -----------------------------
 #  Heuristic 3 (dichotomie)
 # -----------------------------
-class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
+class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
     def initial_ab(self, data):
         a = 0.0
         b = 0.0
@@ -1075,6 +1075,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
     #  Dichotomie 7.2.1 cours de remediation de Optim
     @staticmethod # this is added or else it will throw error since we call it without self in solve method
     def dichotomie(f, a, b, l, epsilon, max_iter):
+        # TODO: remove the max_itere
         k = 0
         ak, bk = a, b
         sequence = [(ak, bk)]
@@ -1151,7 +1152,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
         # ======= OBJECTIVE =======
         model.setObjective(
             # production cost
-            sum((self.Cost_it[i][t]*self.D_t[t] - mu) * self.p1_it[i, t] 
+            sum((self.Cost_it[i][t]*self.D_t[t] - mu) * p1_it[i, t] 
                 for i in self.I1 for t in self.T
             ),
             sense=hp.ObjSense.kMinimize
@@ -1197,7 +1198,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             p1_solution = {(i,t): 0.0 for i in self.I1 for t in self.T}
 
 
-        return obj_value, obj_value, runtime, model.modelStatusToString(model_status), p1_solution  
+        return obj_value, runtime, model.modelStatusToString(model_status), p1_solution  
 
     def sousPB_typeI2_model(self, data, scenario, mu, start_time : float):
         # ======= MODEL =======
@@ -1250,7 +1251,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             # refueling cost (FIXED)
             sum(
                 self.RefCost_ik[i][k_idx] *
-                sum(self.r_it[i, t] for t in self.K_i[i][k_idx])
+                sum(r_it[i, t] for t in self.K_i[i][k_idx])
                 for i in self.I2
                 for k_idx in range(len(self.K_i[i]))
             ),
@@ -1262,7 +1263,7 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             # (4)
             for i in self.I2:
                 model.addConstr(
-                    self.p2_it[i, t] 
+                    p2_it[i, t] 
                             <= self.Pmax_2[i][t] * (1 - y_it[i, t]),
                     name=f"Pmax2_constraint_i{i}_t{t}"
                 )     
@@ -1370,28 +1371,44 @@ class MaintenanceHeuristicV3_dichotomie(AbstractMaintenanceHeuristic):
             r_solution = {}
             s_solution = {(i,t): float(self.X_i[i]) for i in self.I2 for t in self.T}
 
-        return obj_value, obj_value, runtime, model.modelStatusToString(model_status), x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
+        return obj_value, runtime, model.modelStatusToString(model_status), x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
 
 
     def solve(self, data: Readingfile, scenario: int) -> Solution:
+        try:
+            from .checker import Checker
+        except ImportError:
+            from checker import Checker        
+
         self.set_data_attrs(data, scenario)
 
         start_time = time.time()
         a, b = self.initial_ab(data)
         f = lambda mu: self.dualLag_function(mu, data, scenario)
 
-        mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=50)
+        mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=10)
 
         dualLag_value = f(mu_star)
 
-        obj_value_sousPB1, obj_value_sousPB1, runtime_sousPB1, model_status_sousPB1, p1_solution_sousPB1 = self.sousPB_typeI1_model(data, scenario, mu_star, start_time=start_time)
+        obj_value_sousPB1, runtime_sousPB1, model_status_sousPB1, p1_solution_sousPB1 = self.sousPB_typeI1_model(data, scenario, mu_star, start_time=start_time)
 
-        obj_value_sousPB2, obj_value_sousPB2, runtime_sousPB2, model_status_sousPB2, x_ikt_solution_sousPB2, y_it_solution_sousPB2, p2_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2 = self.sousPB_typeI2_model(data, scenario, mu_star, start_time=runtime_sousPB1)
+        obj_value_sousPB2, runtime_sousPB2, model_status_sousPB2, x_ikt_solution_sousPB2, y_it_solution_sousPB2, p2_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2 = self.sousPB_typeI2_model(data, scenario, mu_star, start_time=runtime_sousPB1)
 
-        sol_sousPB = [p1_solution_sousPB1, p2_solution_sousPB2, y_it_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2, x_ikt_solution_sousPB2] 
+        sol_sousPB_list = [p1_solution_sousPB1, p2_solution_sousPB2, y_it_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2, x_ikt_solution_sousPB2] 
+        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value_sousPB1+obj_value_sousPB2, 0, 0 , sol_sousPB_list)
 
         if Checker(data, sol_sousPB, scenario):
-            pass
+            return sol_sousPB  # dual_bound, total_runtime + lp_runtime, sol)
+            
+        else :
+            # list to dict 
+            
+            # inherited LP production plan
+            production_plan = self.computeProductionPlanLP(
+                data, scenario, y_it_solution_sousPB2, x_ikt_solution_sousPB2, start_time
+            )
+            obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+            sol = [p1_sol, p2_sol, y_it_solution_sousPB2, r_sol, s_sol, x_ikt_solution_sousPB2]
 
-        # return Solution(f"HEURISTIC_3_DICHOTOMY{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
           

@@ -157,7 +157,7 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
         return
 
     print_solution(sol)
-    Checker(data, sol, scheme)
+    # Checker(data, sol, scheme)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")

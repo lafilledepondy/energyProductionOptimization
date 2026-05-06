@@ -20,8 +20,8 @@ def flowChart_heu1():
     # Bleu pour les actions (Rectangles)
     g.attr('node', color='steelblue', fillcolor='aliceblue', shape='box')
     g.node('B', 'Calculer scores de priorité Wi')
-    g.node('C', 'Trier les centrales par Wi')
-    g.node('D', 'Sélectionner la première centrale')
+    g.node('C', 'Trier les centrales par Wi décroissant')
+    g.node('D', 'Sélectionner la première centrale') # REDO the french
     g.node('F', 'Planifier l\'interruption\nMettre à jour y, x')
     g.node('G', 'Rien planifier')
     g.node('I', 'Résoudre le PL pour p, s, r')
@@ -283,9 +283,9 @@ def draw_maintenance_schedule_production():
     
 def main():
     # flowChart_heu1()
-    flowChart_heu1_1()
+    # flowChart_heu1_1()
     # draw_maintenance_schedule()
-    # draw_maintenance_schedule_production()
+    draw_maintenance_schedule_production()
 
 if __name__ == "__main__":
     main()
