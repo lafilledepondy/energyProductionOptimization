@@ -48,10 +48,10 @@ def print_solution_summary(solution: Solution, detailed: bool = False, max_items
 
     print(_format_mapping_preview("solP1", solution._solP1, max_items))
     print(_format_mapping_preview("solP2", solution._solP2, max_items))
-    print(_format_mapping_preview("soly", solution._soly, max_items))
+    #print(_format_mapping_preview("soly", solution._soly, max_items))
     print(_format_mapping_preview("solr", solution._solr, max_items))
     print(_format_mapping_preview("sols", solution._sols, max_items))
-    print(_format_mapping_preview("solx", solution._solx, max_items))
+    #print(_format_mapping_preview("solx", solution._solx, max_items))
 
 def saveDataToFile(solution, dataFileName):
     import csv

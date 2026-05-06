@@ -1357,8 +1357,16 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
         ):
             obj_value = model.getObjectiveValue()
-            x_ikt_solution = {(i, k_idx, t): model.variableValue(x_ikt[i, k_idx, t]) for i in self.I2 for k_idx in range(len(self.K_i[i])) for t in self.K_i[i][k_idx]}
-            y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
+            x_ikt_solution = [[] for _ in range(len(self.I2))]
+            for i in self.I2 :
+                for k_idx, k in enumerate(self.K_i[i]) :
+                    for t in k :
+                        if model.variableValue(x_ikt[i,k_idx, t]) > 0.1 :
+                            x_ikt_solution[i].append((k_idx, t))
+                   
+            # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
+            y_it_solution = [[model.variableValue(y_it[i,t]) for t in self.T] for i in range(len(self.I2))]
+            # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
             p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in self.I2 for t in self.T}
             r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in self.I2 for t in self.T if model.variableValue(r_it[i,t]) > 0.1}
             s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in self.I2 for t in self.T}
