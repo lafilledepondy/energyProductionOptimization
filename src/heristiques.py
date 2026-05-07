@@ -621,10 +621,28 @@ class MaintenanceHeuristicV2_basic(AbstractMaintenanceHeuristic):
         ):
             obj_value = model.getObjectiveValue()
             
-            p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in self.I1 for t in self.T}
-            p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in self.I2 for t in self.T}
-            r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in self.I2 for t in self.T if model.variableValue(r_it[i,t]) > 0.1}
-            s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in self.I2 for t in self.T}
+            solution = model.getSolution().col_value
+
+            p1_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in p1_it.items()
+            }
+
+            p2_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in p2_it.items()
+            }
+
+            r_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in r_it.items()
+                if solution[var.index] > 0.1
+            }
+
+            s_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in s_it.items()
+            }
 
         else:
             obj_value = -1
@@ -792,9 +810,69 @@ class MaintenanceHeuristicV2MultiCampaign(MaintenanceHeuristicV2_basic):
         total_runtime = time.time() - start_time
 
         return Solution(f"HEURISTIC_2_MultiCampaign_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+    
+# -----------------------------
+#  Heuristic 2_3
+# -----------------------------
+class MaintenanceHeuristicV2MultiCampaign_2(MaintenanceHeuristicV2MultiCampaign):
+     def solve(self, data: Readingfile, scenario: int) -> Solution:
+        self.set_data_attrs(data, scenario)
+        start_time = time.time()
+        result = self.scheduleMaintenance(data)
+
+        if result is None:
+            return None
+
+        y_it, x_itk = result
+        production_plan = self.computeProductionPlanLP(data, scenario, y_it, x_itk, start_time)
+        start_timetest = time.time()
+        if production_plan is None:
+            return None
+
+        obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+        start_time2 = time.time()
+        I2 = data.nbpower2()
+        T = data.timestep()
+        y_it = [[0]*T for _ in range(I2)]
+
+        for i in range(I2):
+            x_itk[i] = [(k, t) for (k, t) in x_itk[i] if (i, t) in r_sol]
+
+        for i, campaigns in enumerate(x_itk):
+            plant = data.accessPower2(i)
+            campaigns_data = plant.Campaigns()  
+
+            for k_index, t_start in campaigns:
+                duration = campaigns_data[k_index].durationoutage()
+                t_end = min(t_start + duration, T)
+                for t in range(t_start, t_end):
+                    y_it[i][t] = 1
+        production_plan = self.computeProductionPlanLP(data, scenario, y_it, x_itk, start_time2)
+        if production_plan is None:
+            return None
+
+        obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+
+        y_sol = {
+            (i, t): 1
+            for i in range(data.nbpower2())
+            for t in range(data.timestep())
+            if y_it[i][t] == 1
+        }
+        x_sol = {
+            (i, k_index, t_start): 1
+            for i, campaigns in enumerate(x_itk)
+            for k_index, t_start in campaigns
+        }
+        
+        sol = [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+        total_runtime = time.time() - start_time
+
+        return Solution(f"HEURISTIC_2_MultiCampaign_2_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
+
 
 # -----------------------------
-#  Heuristic 2_1
+#  Heuristic 2_4
 # -----------------------------
 class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
     """
@@ -1402,7 +1480,18 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
 
         obj_value_sousPB2, runtime_sousPB2, model_status_sousPB2, x_ikt_solution_sousPB2, y_it_solution_sousPB2, p2_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2 = self.sousPB_typeI2_model(data, scenario, mu_star, start_time=runtime_sousPB1)
 
-        sol_sousPB_list = [p1_solution_sousPB1, p2_solution_sousPB2, y_it_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2, x_ikt_solution_sousPB2] 
+        y_it_solution_sousPB2_ = {
+            (i, t): 1
+            for i in range(data.nbpower2())
+            for t in range(data.timestep())
+            if y_it_solution_sousPB2[i][t] == 1
+        }
+        x_ikt_solution_sousPB2_ = {
+            (i, k_index, t_start): 1
+            for i, campaigns in enumerate(x_ikt_solution_sousPB2)
+            for k_index, t_start in campaigns
+        }
+        sol_sousPB_list = [p1_solution_sousPB1, p2_solution_sousPB2, y_it_solution_sousPB2_, r_solution_sousPB2, s_solution_sousPB2, x_ikt_solution_sousPB2_] 
         sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value_sousPB1+obj_value_sousPB2, 0, 0 , sol_sousPB_list)
 
         if Checker(data, sol_sousPB, scenario):
@@ -1416,7 +1505,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
                 data, scenario, y_it_solution_sousPB2, x_ikt_solution_sousPB2, start_time
             )
             obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
-            sol = [p1_sol, p2_sol, y_it_solution_sousPB2, r_sol, s_sol, x_ikt_solution_sousPB2]
+            sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
 
             return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
           

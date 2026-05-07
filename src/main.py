@@ -33,6 +33,8 @@ def main():
     # heuristic_2_2_demo("data2.txt", 0, 1.4727594e+11) # gap = -4.44%
     # heuristic_2_2_demo("data4.txt", 1, 100585552199.51825) # gap = -9.44%
 
+    heuristic_2_2_1demo("data5.txt", 0, 113322696311.46948) # gap = -2.13%
+
     # heuristic_2_RF_demo("toy.txt", 0, 58651800.0) # gap = 100% comme V2_basic
     # heuristic_2_RF_demo("toyy.txt", 0, 58651800.0) # gap = -6.85%
     # heuristic_2_RF_demo("data0.txt", 0, 8610050657314.8) # gap = -0.44%
@@ -40,7 +42,7 @@ def main():
     # heuristic_2_RF_demo("data1.txt", 0, 170492782000) # gap = -12.24%
     # heuristic_2_RF_demo("data1.txt", 1, ) # gap = ?
 
-    heuristic_3_dichotomie_demo("toy.txt", 0, 63274200.0) # gap = ?
+    # heuristic_3_dichotomie_demo("toy.txt", 0, 63274200.0) # gap = ?
     # heuristic_3_dichotomie_demo("toyy.txt", 0, 58651800.0) # gap = ?
     # heuristic_3_dichotomie_demo("data0.txt", 0, 8610050657314.8) # gap = ?
     # heuristic_3_dichotomie_demo("data0.txt", 1, 8846806435123.2) # gap = ?
