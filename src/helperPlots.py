@@ -1,6 +1,6 @@
 from graphviz import Digraph
 
-def flowChart_heu1():
+def flowChart_heu_basic():
 
     g = Digraph(format='png')
     g.attr(rankdir='TB')
@@ -9,7 +9,7 @@ def flowChart_heu1():
 
     # Vert pour le début et la fin (Cercles/Ellipses)
     g.attr('node', style='filled', color='seagreen', fillcolor='honeydew', shape='ellipse')
-    g.node('A', 'Début Heuristique 1')
+    g.node('A', 'Début Heuristique basique')
     g.node('J', 'Solution finale')
 
     # Orange pour les questions (Losanges)
@@ -36,17 +36,73 @@ def flowChart_heu1():
     g.edge('H', 'I', label='No')
     g.edge('I', 'J')
 
-    g.render('output/heuristic_1_flowchart', view=True)
+    g.render('output/heuristic_basic_flowchart', view=True)
 
+from graphviz import Digraph
 
-def flowChart_heu1_1():
+def flowChart_heu_campaign_multiple():
+
+    g = Digraph(format='png')
+    g.attr(rankdir='TB')
+
+    # --- Configuration des Styles ---
+
+    # Vert pour le début et la fin (Cercles/Ellipses)
+    g.attr('node', style='filled', color='seagreen', fillcolor='honeydew', shape='ellipse')
+    g.node('A', 'Début Heuristique basique améliorée\nMulti-campagnes')
+    g.node('K', 'Solution finale')
+
+    # Orange pour les questions (Losanges)
+    g.attr('node', color='darkorange', fillcolor='papayawhip', shape='diamond')
+    g.node('E', 'Date d\'interruption réalisable?')
+    g.node('H', 'Plus de centrales?')
+    g.node('I', 'cpt < |I_2| ?')
+
+    # Bleu pour les actions (Rectangles)
+    g.attr('node', color='steelblue', fillcolor='aliceblue', shape='box')
+    g.node('B', 'Calculer scores de priorité Wi\nET\nTrier les centrales par Wi décroissant')
+    g.node('C', 'Unité sans créneau réalisable : cpt=0')
+    g.node('D', 'Sélectionner la première centrale')
+    g.node('F', 'Planifier l\'interruption\nMettre à jour y, x')
+    g.node('G', 'Rien planifier ; cpt+1')
+    g.node('J', 'Résoudre le PL pour p, s, r')
+
+    # --- Définition des Arêtes ---
+
+    g.edges([
+        ('A', 'B'),
+        ('B', 'C')
+    ])
+
+    # Partie identique à la version précédente → en pointillés
+    g.edge('C', 'D',)
+    g.edge('D', 'E', style='dashed')
+
+    g.edge('E', 'F', label='Yes', style='dashed')
+    g.edge('E', 'G', label='No', style='dashed')
+
+    g.edge('G', 'H', style='dashed')
+    g.edge('F', 'H', style='dashed')
+
+    g.edge('H', 'D', label='Yes', style='dashed')
+
+    # Partie spécifique multi-campagnes
+    g.edge('H', 'I', label='No')
+    g.edge('I', 'C', label='Yes')
+    g.edge('I', 'J', label='No')
+
+    g.edge('J', 'K')
+
+    g.render('output/heuristic_campaign_multiple_flowchart', view=True)
+
+def flowChart_heu_RF():
 
     g = Digraph(format='png')
     g.attr(rankdir='TB')
 
     # --- Start / End ---
     g.attr('node', style='filled', color='seagreen', fillcolor='honeydew', shape='ellipse')
-    g.node('A', 'Début Heuristique 2 améliorée (Random Forest)')
+    g.node('A', 'Début Heuristique améliorée\nRandom Forest')
     # g.node('N', 'Solution finale')
 
     # --- Decisions ---
@@ -66,7 +122,7 @@ def flowChart_heu1_1():
     g.node('I', 'Prédiction meilleurs t_start candidats')
 
     g.node('J', 'Test capacité restante / faisabilité')
-    g.node('L', '(pareil que V2_basic...)')
+    g.node('L', '(pareil que heuristique basic...)')
     # g.node('L', 'Fixer x_itk et y_it')
     # g.node('M', 'Résolution PL production + recharge (HiGHS)')
 
@@ -96,7 +152,7 @@ def flowChart_heu1_1():
     # g.edge('L', 'M')
     # g.edge('M', 'N')
 
-    g.render('output/heuristic_RF+MILP_flowchart', view=True)   
+    g.render('output/heuristic_basic+MILP_flowchart', view=True)   
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -275,10 +331,11 @@ def draw_maintenance_schedule_production():
     plt.show()
     
 def main():
-    # flowChart_heu1()
-    # flowChart_heu1_1()
+    flowChart_heu_basic()
+    flowChart_heu_campaign_multiple()
+    # flowChart_heu_RF()
     # draw_maintenance_schedule()
-    draw_maintenance_schedule_production()
+    # draw_maintenance_schedule_production()
 
 if __name__ == "__main__":
     main()

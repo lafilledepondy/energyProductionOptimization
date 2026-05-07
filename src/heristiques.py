@@ -825,7 +825,6 @@ class MaintenanceHeuristicV2MultiCampaign_2(MaintenanceHeuristicV2MultiCampaign)
 
         y_it, x_itk = result
         production_plan = self.computeProductionPlanLP(data, scenario, y_it, x_itk, start_time)
-        start_timetest = time.time()
         if production_plan is None:
             return None
 
@@ -1136,42 +1135,42 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
 #  Heuristic 3 (dichotomie)
 # -----------------------------
 class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
-    def initial_ab(self, data):
-        a = 0.0
-        b = 0.0
+    # def initial_ab(self, data):
+    #     a = 0.0
+    #     b = 0.0
 
-        for i in self.I1:
-            for t in self.T:
-                b = max(b, self.Cost_it[i][t] * self.D_t[t])
+    #     for i in self.I1:
+    #         for t in self.T:
+    #             b = max(b, self.Cost_it[i][t] * self.D_t[t])
 
-        for i_idx, i in enumerate(self.I2):
-            for k in range(len(self.RefCost_ik[i_idx])):
-                b = max(b, self.RefCost_ik[i_idx][k])
+    #     for i_idx, i in enumerate(self.I2):
+    #         for k in range(len(self.RefCost_ik[i_idx])):
+    #             b = max(b, self.RefCost_ik[i_idx][k])
 
-        return a, b   
+    #     return a, b   
     
-    #  Dichotomie 7.2.1 cours de remediation de Optim
-    @staticmethod # this is added or else it will throw error since we call it without self in solve method
-    def dichotomie(f, a, b, l, epsilon, max_iter):
-        # TODO: remove the max_itere
-        k = 0
-        ak, bk = a, b
-        sequence = [(ak, bk)]
+    # #  Dichotomie 7.2.1 cours de remediation de Optim
+    # @staticmethod # this is added or else it will throw error since we call it without self in solve method
+    # def dichotomie(f, a, b, l, epsilon, max_iter):
+    #     # TODO: remove the max_itere
+    #     k = 0
+    #     ak, bk = a, b
+    #     sequence = [(ak, bk)]
         
-        while (bk - ak) > l and k <= max_iter:
-            mid = (ak + bk) / 2.0
-            x1 = mid - epsilon
-            x2 = mid + epsilon
+    #     while (bk - ak) > l and k <= max_iter:
+    #         mid = (ak + bk) / 2.0
+    #         x1 = mid - epsilon
+    #         x2 = mid + epsilon
             
-            if f(x1) < f(x2):
-                bk = x2
-            else:
-                ak = x1
+    #         if f(x1) < f(x2):
+    #             bk = x2
+    #         else:
+    #             ak = x1
                 
-            sequence.append((round(ak, 3), round(bk, 3)))
-            k += 1
+    #         sequence.append((round(ak, 3), round(bk, 3)))
+    #         k += 1
             
-        return ((ak + bk)/2.0), sequence
+    #     return ((ak + bk)/2.0), sequence
     
     def dualLag_function(self, mu, data, scenario):
         total = 0.0
@@ -1214,6 +1213,56 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             total += mu * self.Dem_t[t]
 
         return total
+    
+    # def subgradient_basic( self,data, scenario, 
+    #     initial_pi: np.Array[np.float64],
+    #     initial_mu: np.Array[np.float64],
+    #     min_step_size: float,
+    #     initial_step_size: float = 2.0,
+    #     alpha: float = 0.8,
+    #     max_iterations: int | None = None,
+    # ):
+    #     pi = initial_pi
+    #     mu = initial_mu 
+
+    #     step_size = float(initial_step_size)
+
+    #     best_Dualvalue = 0
+    #     best_x = None
+
+    #     history = [] # to track
+
+    #     iteration = 0
+    #     while step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+    #         # solve Lagrangian subproblem
+    #         dual_value, x = self.dualLag_function(mu, data, scenario)
+
+    #         # keep best
+    #         if dual_value > best_Dualvalue:
+    #             best_Dualvalue = dual_value
+    #             best_x = x
+
+    #         # subgradient
+    #         sg_pi, sg_mu = compute_subgradient(x)
+
+    #         # update multipliers
+    #         pi = pi + step_size * sg_pi 
+    #         mu = mu + step_size * sg_mu
+
+    #         # projection pi >= 0
+    #         pi = project_solution(pi) # returns compherension list
+
+    #         # update step
+    #         step_size = update_step_size(step_size, alpha)
+
+    #         # update the history
+    #         history.append({
+    #             "dual_value": dual_value,
+    #             "pi": np.copy(pi),
+    #             "mu": np.copy(mu)
+    #         })
+    #         iteration += 1
+    #     return round(best_Dualvalue, 2), best_x, history
     
     def sousPB_typeI1_model(self, data, scenario, mu, start_time : float):
         # ======= MODEL =======

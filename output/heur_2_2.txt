@@ -1,0 +1,25 @@
+toy.txt s = 0, bd = 64624200 gap = -2.13% CPU =  0.067
+toyy.txt s = 0 bd = 60001800 gap = -2.30% CPU = 0.135
+
+data0.txt s = 0 bd = 8624316633649.2 gap = -0.17% CPU= 0.604
+data0.txt s = 1 bd = 8861032857649.2 gap = -0.16% CPU= 0.627
+
+data1.txt s = 0 bd = 183098249395.8927 gap = -7.39% cpu= 8.417
+data1.txt s = 1 bd = 173534953881.04657 gap = -4.86% cpu = 8.521
+data1.txt s = 2 bd = 169279358587.73328 gap = -3.95% CPU =8.559
+data1.txt s = 3 bd = 156127986446.38153 gap = -3.60% CPU=8.914
+data1.txt s = 4 bd = 221743635771.35547 gap = -5.54% CPU=9.076
+
+data2.txt s = 0 bd = 153811580057.02194 gap = -4.44% CPU=19.203
+data2.txt s = 1 bd = 152133630909.0828 gap = 0.00% CPU= 18.630
+
+data3.txt s = 0 bd = 152701073609.0326 gap = -9.44% CPU= 21.169
+data3.txt s = 1 bd = 138317392053.2779  gap = -6.09% CPU= 20.546
+
+data4.txt s = 0 bd = 237769324123.68338 gap = -105.39% CPU= 39.870
+data4.txt s = 1 bd = 207450874457.8671 gap = -106.24% CPU= 39.256
+
+data5.txt s = 0 bd = 196313812276.36218 gap = -73.23% CPU= 35.229
+
+
+data5.txt s = 1 bd = 114356025565.31677 gap = -66.96%
