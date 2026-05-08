@@ -1,0 +1,22 @@
+toy.txt s = 0, bd = -1 gap = -100% secondes = 2.861
+toyy.txt s = 0 bd = 62671800.0 gap = -6.85% secondes = 0.244
+
+data0.txt s = 0 bd = 8648214425640.0 gap = -0.44% secondes = 1.088
+data0.txt s = 1 bd = 8884930649640.0 gap = -0.43% secondes = 0.988
+
+data1.txt s = 0 bd = 191362312988.98526 gap = -12.24% secondes = 22.535
+data1.txt s = 1 bd = 181110497776.69656 gap = -9.44% secondes = 22.730
+data1.txt s = 2 bd = 178432906076.40906 gap = -9.57% secondes = 25.150
+data1.txt s = 3 bd = 164677073065.53363 gap = -9.28% secondes = 22.886
+data1.txt s = 4 bd = 230727488210.208 gap = -9.81% secondes = 22.811
+
+data2.txt s = 0 bd = 170130975311.5931 gap = -15.52% secondes = 97.956
+data2.txt s = 1 bd = 167684685346.94424 gap = -10.22% secondes = 98.918
+
+data3.txt s = 0 bd = 165029953115.05194 gap = -18.27% secondes = 103.860
+data3.txt s = 1 bd = 153600355357.48987 gap = -17.81% secondes = 100.539
+
+data4.txt s = 0 bd = 175802167509.55045 gap = -51.86% secondes = 317.972
+data4.txt s = 1 bd = 149595266333.34402 gap = -48.72% secondes = 318.085
+
+data5.txt s = 0 bd = 172041159686.67465 gap = -51.82% secondes = 300.565
