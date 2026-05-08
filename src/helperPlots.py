@@ -272,7 +272,7 @@ def draw_maintenance_schedule_production():
     weeks_ticks = range(0, 134, 7)
 
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(9, 5))
 
     # --- Draw Axes and Labels ---
     for y, name in units:
@@ -290,7 +290,8 @@ def draw_maintenance_schedule_production():
             vals = np.array(prod_data[y])
             n = len(vals)
             # x coordinates matching the number of samples in this series
-            x_vals = np.arange(0.5, 0.5 + n, 1.0)
+            # Start at integer days (0,1,2,...) so curves align with rectangles/ticks
+            x_vals = np.arange(0, n, 1.0)
             max_val = max(vals) if max(vals) > 0 else 1
             # Scaling: 0.4 is the peak height, y is the baseline
             norm_vals = y + (vals / max_val) * 0.4
@@ -305,12 +306,22 @@ def draw_maintenance_schedule_production():
                                    edgecolor='black', linewidth=1, zorder=2))
     ax.text(21, 2.3, "Arrêt (14j)", ha='center', va='bottom', fontsize=8)
 
+    # Bloc 2 : t=94 à 107 (14 jours)
+    ax.add_patch(patches.Rectangle((94, 2 - 0.25), 14, 0.5, facecolor='#99ff99', 
+                                   edgecolor='black', linewidth=1, zorder=2))
+    ax.text(101, 2.3, "Arrêt (14j)", ha='center', va='bottom', fontsize=8)    
+
     # --- Unit 6 (Nucléaire 2) Maintenance ---
     ax.add_patch(patches.Rectangle((14, 1 - 0.25), 42, 0.5, color='#e0e0e0', zorder=1))
-    ax.add_patch(patches.Rectangle((91, 1 - 0.25), 28, 0.5, color='#e0e0e0', zorder=1))
-    ax.add_patch(patches.Rectangle((35, 1 - 0.25), 14, 0.5, facecolor='#99ff99', 
+    ax.add_patch(patches.Rectangle((105, 1 - 0.25), 28, 0.5, color='#e0e0e0', zorder=1))
+    ax.add_patch(patches.Rectangle((42, 1 - 0.25), 14, 0.5, facecolor='#99ff99', 
                                    edgecolor='black', linewidth=1, zorder=2))
-    ax.text(42, 1.3, "Arrêt (14j)", ha='center', va='bottom', fontsize=8)
+    ax.text(49, 1.3, "Arrêt (14j)", ha='center', va='bottom', fontsize=8)
+
+    # Bloc 2 : t=118 à 131 (14 jours)
+    ax.add_patch(patches.Rectangle((112, 1 - 0.25), 14, 0.5, facecolor='#99ff99', 
+                                   edgecolor='black', linewidth=1, zorder=2))
+    ax.text(119, 1.3, "Arrêt (14j)", ha='center', va='bottom', fontsize=8)    
 
     # --- Legend ---
     ax.add_patch(patches.Rectangle((10, -0.2), 5, 0.3, facecolor='#e0e0e0', edgecolor='black'))
@@ -321,21 +332,21 @@ def draw_maintenance_schedule_production():
     ax.text(17, -0.28, "Courbe de production", va='center', fontsize=10)
 
     # --- Formatting ---
-    ax.set_xlim(-45, x_limit + 15)
-    ax.set_ylim(-0.5, 7.5)
+    ax.set_xlim(-30, x_limit + 8)
+    ax.set_ylim(-0.6, 4.7)
     ax.axis('off')
     plt.title("Solution réalisable : Planning des arrêts et Courbes de Production", 
-              y=0.65, fontsize=13, fontweight='bold')
+              y=0.98, fontsize=13, fontweight='bold')
 
-    plt.savefig('output/solExample_maintenanceSchedule_production.png', bbox_inches='tight', dpi=300)
+    plt.savefig('output/solution réalisable.png', bbox_inches='tight', dpi=300)
     plt.show()
     
 def main():
-    flowChart_heu_basic()
-    flowChart_heu_campaign_multiple()
+    # flowChart_heu_basic()
+    # flowChart_heu_campaign_multiple()
     # flowChart_heu_RF()
     # draw_maintenance_schedule()
-    # draw_maintenance_schedule_production()
+    draw_maintenance_schedule_production()
 
 if __name__ == "__main__":
     main()

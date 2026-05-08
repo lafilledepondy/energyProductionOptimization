@@ -1,0 +1,33 @@
+digraph {
+	rankdir=TB
+	node [color=seagreen fillcolor=honeydew shape=ellipse style=filled]
+	A [label="Début Heuristique améliorée
+Random Forest"]
+	node [color=darkorange fillcolor=papayawhip shape=diamond]
+	B [label="Modèle priorité en cache ?"]
+	F [label="Modèle dates en cache ?"]
+	K [label="Créneau faisable trouvé ?"]
+	node [color=steelblue fillcolor=aliceblue shape=box]
+	C [label="Construction features centrales type 2"]
+	D [label="Entraînement RandomForestRegressor"]
+	E [label="Prédiction scores W_i et tri centrales"]
+	G [label="Construction dataset dates maintenance"]
+	H [label="Entraînement RandomForestClassifier"]
+	I [label="Prédiction meilleurs t_start candidats"]
+	J [label="Test capacité restante / faisabilité"]
+	L [label="(pareil que heuristique basic...)"]
+	A -> B
+	B -> E [label=Oui]
+	B -> C [label=Non]
+	C -> D
+	D -> E
+	E -> F
+	F -> I [label=Oui]
+	F -> G [label=Non]
+	G -> H
+	H -> I
+	I -> J
+	J -> K
+	K -> L [label=Oui]
+	K -> I [label=Non]
+}

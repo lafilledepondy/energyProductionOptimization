@@ -1,0 +1,28 @@
+digraph {
+	rankdir=TB
+	node [color=seagreen fillcolor=honeydew shape=ellipse style=filled]
+	A [label="Début Heuristique basique"]
+	J [label="Solution finale"]
+	node [color=darkorange fillcolor=papayawhip shape=diamond]
+	E [label="Date d'interruption réalisable?"]
+	H [label="Plus de centrales?"]
+	node [color=steelblue fillcolor=aliceblue shape=box]
+	B [label="Calculer scores de priorité Wi"]
+	C [label="Trier les centrales par Wi décroissant"]
+	D [label="Sélectionner la première centrale"]
+	F [label="Planifier l'interruption
+Mettre à jour y, x"]
+	G [label="Rien planifier"]
+	I [label="Résoudre le PL pour p, s, r"]
+	A -> B
+	B -> C
+	C -> D
+	D -> E
+	E -> F [label=Yes]
+	E -> G [label=No]
+	G -> H
+	F -> H
+	H -> D [label=Yes]
+	H -> I [label=No]
+	I -> J
+}

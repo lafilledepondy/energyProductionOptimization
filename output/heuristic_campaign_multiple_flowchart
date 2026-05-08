@@ -1,0 +1,34 @@
+digraph {
+	rankdir=TB
+	node [color=seagreen fillcolor=honeydew shape=ellipse style=filled]
+	A [label="Début Heuristique basique améliorée
+Multi-campagnes"]
+	K [label="Solution finale"]
+	node [color=darkorange fillcolor=papayawhip shape=diamond]
+	E [label="Date d'interruption réalisable?"]
+	H [label="Plus de centrales?"]
+	I [label="cpt < |I_2| ?"]
+	node [color=steelblue fillcolor=aliceblue shape=box]
+	B [label="Calculer scores de priorité Wi
+ET
+Trier les centrales par Wi décroissant"]
+	C [label="Unité sans créneau réalisable : cpt=0"]
+	D [label="Sélectionner la première centrale"]
+	F [label="Planifier l'interruption
+Mettre à jour y, x"]
+	G [label="Rien planifier ; cpt+1"]
+	J [label="Résoudre le PL pour p, s, r"]
+	A -> B
+	B -> C
+	C -> D
+	D -> E [style=dashed]
+	E -> F [label=Yes style=dashed]
+	E -> G [label=No style=dashed]
+	G -> H [style=dashed]
+	F -> H [style=dashed]
+	H -> D [label=Yes style=dashed]
+	H -> I [label=No]
+	I -> C [label=Yes]
+	I -> J [label=No]
+	J -> K
+}
