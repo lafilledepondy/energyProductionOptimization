@@ -1172,98 +1172,6 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             
     #     return ((ak + bk)/2.0), sequence
     
-    def dualLag_function(self, mu, data, scenario):
-        total = 0.0
-
-        for i in self.I1:
-            for t in self.T:
-                gain = self.Cost_it[i][t] * self.D_t[t] - mu
-
-                if gain < 0:
-                    p = data.accessPower1(scenario, i).pmax()[t]
-                else:
-                    p = 0.0
-
-                total += gain * p
-
-        for i in self.I2:
-            pmax = data.accessPower2(i).pmax()
-            for t in self.T:
-                gain = -mu
-                if gain < 0:
-                    p = pmax[t]
-                else:
-                    p = 0.0
-
-                total += gain * p
-
-            for k in range(len(data.accessPower2(i).Campaigns())):
-                camp = data.accessCampaign(i, k)
-                ref_cost = float(camp.refuelingcost())
-                incentive = mu * camp.durationoutage()
-
-                if incentive > ref_cost:
-                    r = camp.maxrefuel()
-                else:
-                    r = 0.0
-
-                total += ref_cost * r
-
-        for t in self.T:
-            total += mu * self.Dem_t[t]
-
-        return total
-    
-    # def subgradient_basic( self,data, scenario, 
-    #     initial_pi: np.Array[np.float64],
-    #     initial_mu: np.Array[np.float64],
-    #     min_step_size: float,
-    #     initial_step_size: float = 2.0,
-    #     alpha: float = 0.8,
-    #     max_iterations: int | None = None,
-    # ):
-    #     pi = initial_pi
-    #     mu = initial_mu 
-
-    #     step_size = float(initial_step_size)
-
-    #     best_Dualvalue = 0
-    #     best_x = None
-
-    #     history = [] # to track
-
-    #     iteration = 0
-    #     while step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
-    #         # solve Lagrangian subproblem
-    #         dual_value, x = self.dualLag_function(mu, data, scenario)
-
-    #         # keep best
-    #         if dual_value > best_Dualvalue:
-    #             best_Dualvalue = dual_value
-    #             best_x = x
-
-    #         # subgradient
-    #         sg_pi, sg_mu = compute_subgradient(x)
-
-    #         # update multipliers
-    #         pi = pi + step_size * sg_pi 
-    #         mu = mu + step_size * sg_mu
-
-    #         # projection pi >= 0
-    #         pi = project_solution(pi) # returns compherension list
-
-    #         # update step
-    #         step_size = update_step_size(step_size, alpha)
-
-    #         # update the history
-    #         history.append({
-    #             "dual_value": dual_value,
-    #             "pi": np.copy(pi),
-    #             "mu": np.copy(mu)
-    #         })
-    #         iteration += 1
-    #     return round(best_Dualvalue, 2), best_x, history
-    
     def sousPB_typeI1_model(self, data, scenario, mu, start_time : float):
         # ======= MODEL =======
         model = hp.Highs()
@@ -1279,7 +1187,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         # ======= OBJECTIVE =======
         model.setObjective(
             # production cost
-            sum((self.Cost_it[i][t]*self.D_t[t] - mu) * p1_it[i, t] 
+            sum((self.Cost_it[i][t]*self.D_t[t] - mu[t]) * p1_it[i, t] 
                 for i in self.I1 for t in self.T
             ),
             sense=hp.ObjSense.kMinimize
@@ -1325,7 +1233,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             p1_solution = {(i,t): 0.0 for i in self.I1 for t in self.T}
 
 
-        return obj_value, runtime, model.modelStatusToString(model_status), p1_solution  
+        return obj_value, p1_solution  
 
     def sousPB_typeI2_model(self, data, scenario, mu, start_time : float):
         # ======= MODEL =======
@@ -1377,10 +1285,13 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         model.setObjective(
             # refueling cost (FIXED)
             sum(
-                self.RefCost_ik[i][k_idx] *
+                ( 
+                sum(self.RefCost_ik[i][k_idx] *
                 sum(r_it[i, t] for t in self.K_i[i][k_idx])
+                for k_idx in range(len(self.K_i[i])))
+                - sum(mu[t] * p2_it[i, t] for t in self.T)
                 for i in self.I2
-                for k_idx in range(len(self.K_i[i]))
+                )
             ),
             sense=hp.ObjSense.kMinimize
         )         
@@ -1506,8 +1417,68 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             r_solution = {}
             s_solution = {(i,t): float(self.X_i[i]) for i in self.I2 for t in self.T}
 
-        return obj_value, runtime, model.modelStatusToString(model_status), x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
+        return obj_value, x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
 
+
+    def dualLag_function(self, mu, data, scenario):
+        total = 0.0
+        valP1 , p1_sol = self.sousPB_typeI1_model(data, scenario, mu, 0.0)
+        valP2, x_sol, y_sol, p2_sol, r_sol, s_sol = self.sousPB_typeI2_model(data, scenario, mu, 0.0)
+        total = valP2 + valP1 + sum(mu[t]*self.Dem_t[t] for t in self.T)
+
+        return total, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol
+    
+    def compute_subgradient(self, p1_sol, p2_sol):
+        ssgradient = [self.Dem_t[t] - sum(p1_sol[(i,t)] for i in self.I1) - sum(p2_sol[(i,t)] for i in self.I2) 
+                      for t in self.T]
+        return ssgradient
+
+    def subgradient_basic( self,data, scenario, 
+        initial_mu,
+        min_step_size: float,
+        initial_step_size: float = 2.0,
+        alpha: float = 0.8,
+        max_iterations: int | None = None,
+    ):
+        mu = initial_mu 
+
+        step_size = float(initial_step_size)
+
+        best_Dualvalue = 0
+        p1_best, p2_best, x_best, y_best, r_best, s_best = None , None , None , None , None , None 
+        # history = [] # to track
+
+        iteration = 0
+        while step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+            # solve Lagrangian subproblem
+            dual_value, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.dualLag_function(mu, data, scenario)
+
+            # keep best
+            if dual_value > best_Dualvalue:
+                best_Dualvalue = dual_value
+                p1_best, p2_best, x_best, y_best, r_best, s_best = p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol
+
+            # subgradient
+            ssgradient = self.compute_subgradient(p1_sol, p2_sol)
+
+            # update multipliers
+            for t in self.T : 
+                if mu[t] + step_size * ssgradient[t] > 0 :
+                    mu[t] = mu[t] + step_size * ssgradient[t]
+                else :
+                    mu[t] = 0
+
+            # update step
+            step_size = step_size * alpha
+
+            # update the history
+            # history.append({
+            #     "dual_value": dual_value,
+            #     "mu": np.copy(mu)
+            # })
+            iteration += 1
+        return round(best_Dualvalue, 2), p1_best, p2_best, x_best, y_best, r_best, s_best
+    
 
     def solve(self, data: Readingfile, scenario: int) -> Solution:
         try:
@@ -1518,43 +1489,37 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         self.set_data_attrs(data, scenario)
 
         start_time = time.time()
-        a, b = self.initial_ab(data)
-        f = lambda mu: self.dualLag_function(mu, data, scenario)
+        mu_initial = [0 for t in self.T]
 
-        mu_star, _ = self.dichotomie(f, a, b, l=1e-3, epsilon=1e-3, max_iter=10)
+        best_Dualvalue, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.subgradient_basic( data, scenario, mu_initial, 0.8)
 
-        dualLag_value = f(mu_star)
-
-        obj_value_sousPB1, runtime_sousPB1, model_status_sousPB1, p1_solution_sousPB1 = self.sousPB_typeI1_model(data, scenario, mu_star, start_time=start_time)
-
-        obj_value_sousPB2, runtime_sousPB2, model_status_sousPB2, x_ikt_solution_sousPB2, y_it_solution_sousPB2, p2_solution_sousPB2, r_solution_sousPB2, s_solution_sousPB2 = self.sousPB_typeI2_model(data, scenario, mu_star, start_time=runtime_sousPB1)
 
         y_it_solution_sousPB2_ = {
             (i, t): 1
             for i in range(data.nbpower2())
             for t in range(data.timestep())
-            if y_it_solution_sousPB2[i][t] == 1
+            if y_sol[i][t] == 1
         }
         x_ikt_solution_sousPB2_ = {
             (i, k_index, t_start): 1
-            for i, campaigns in enumerate(x_ikt_solution_sousPB2)
+            for i, campaigns in enumerate(x_sol)
             for k_index, t_start in campaigns
         }
-        sol_sousPB_list = [p1_solution_sousPB1, p2_solution_sousPB2, y_it_solution_sousPB2_, r_solution_sousPB2, s_solution_sousPB2, x_ikt_solution_sousPB2_] 
-        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value_sousPB1+obj_value_sousPB2, 0, 0 , sol_sousPB_list)
+        sol_sousPB_list = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_] 
+        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", best_Dualvalue, 0, 0 , sol_sousPB_list)
 
-        if Checker(data, sol_sousPB, scenario):
-            return sol_sousPB  # dual_bound, total_runtime + lp_runtime, sol)
+        # if Checker(data, sol_sousPB, scenario):
+        return sol_sousPB  # dual_bound, total_runtime + lp_runtime, sol)
             
-        else :
-            # list to dict 
+        # else :
+        #     # list to dict 
             
-            # inherited LP production plan
-            production_plan = self.computeProductionPlanLP(
-                data, scenario, y_it_solution_sousPB2, x_ikt_solution_sousPB2, start_time
-            )
-            obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
-            sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
+        #     # inherited LP production plan
+        #     production_plan = self.computeProductionPlanLP(
+        #         data, scenario, y_sol, x_sol, start_time
+        #     )
+        #     obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+        #     sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
 
-            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
+        #     return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
           

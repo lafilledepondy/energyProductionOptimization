@@ -218,28 +218,28 @@ def runMILPModel_1(data: Readingfile, outputFlag: bool, timeLimit: float, scenar
                 sum(x_ikt[i,k_idx, t] for t in k) <= 1,
                 name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
             )
-            for t in k:
-                # (13) --> (12) in the report
-                if t + DA_ik[i][k_idx] <= len(T):
-                    model.addConstr(
-                        sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
-                        >= 
-                        DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
-                        name=f"Link_y_xx_i{i}_t{t}_k{k_idx}"
-                    )
-                else:
-                    model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
+        #     for t in k:
+        #         # (13) --> (12) in the report
+        #         if t + DA_ik[i][k_idx] <= len(T):
+        #             model.addConstr(
+        #                 sum(y_it[i, _t] for _t in range(t, t + DA_ik[i][k_idx]))
+        #                 >= 
+        #                 DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
+        #                 name=f"Link_y_xx_i{i}_t{t}_k{k_idx}"
+        #             )
+        #         else:
+        #             model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
 
                 
-        # (12) --> (11) in the report 
-        model.addConstr(
-            sum(y_it[i,t] for t in T) 
-            == 
-            sum (DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
-                 for k_idx, k in enumerate(K_i[i]) 
-                 for t in k),
-            name=f"Link_y_x_i{i}"
-        )
+        # # (12) --> (11) in the report 
+        # model.addConstr(
+        #     sum(y_it[i,t] for t in T) 
+        #     == 
+        #     sum (DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
+        #          for k_idx, k in enumerate(K_i[i]) 
+        #          for t in k),
+        #     name=f"Link_y_x_i{i}"
+        # )
 
     # ===== EXTRACT SOLUTION =====
     start_time = time.time()
