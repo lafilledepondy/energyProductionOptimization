@@ -185,7 +185,12 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
         print("Heuristic failed: no feasible solution found.")
         return
 
+    print("------------------------------------------")
     print_solution(soldual)
+    if optimal_value is not None:
+        gap = gapEntreOptHeuriEtMILP(optimal_value, soldual._obj_value)
+        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
+    print("------------------------------------------")
     print_solution(sol)
     Checker(data, sol, scheme)
     if optimal_value is not None:
