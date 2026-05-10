@@ -179,12 +179,13 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
     data = Readingfile(str(data_file))
     
     heuristic = MaintenanceHeuristicV3_dichotomie(data, scheme)
-    sol = heuristic.solve(data, scheme)
+    sol , soldual = heuristic.solve(data, scheme)
 
     if sol is None:
         print("Heuristic failed: no feasible solution found.")
         return
 
+    print_solution(soldual)
     print_solution(sol)
     Checker(data, sol, scheme)
     if optimal_value is not None:

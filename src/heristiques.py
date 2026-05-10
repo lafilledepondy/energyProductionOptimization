@@ -1547,7 +1547,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         min_step_size: float,
         initial_step_size: float = 2.0,
         alpha: float = 0.95,
-        max_iterations: int = 200,
+        max_iterations: int = 100,
     ):
         mu = initial_mu 
 
@@ -1620,7 +1620,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         }
         sol_sousPB_list = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_] 
         to = time.time() - start_time
-        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", best_Dualvalue, 0, to , sol_sousPB_list)
+        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Dual", best_Dualvalue, 0, to , sol_sousPB_list)
 
         if CheckerL(data, sol_sousPB, scenario):
             return sol_sousPB
@@ -1635,5 +1635,5 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
             sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
 
-            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
+            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol), sol_sousPB
           
