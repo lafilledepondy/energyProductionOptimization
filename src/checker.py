@@ -7,6 +7,7 @@ def Checker(data: alldata, sol: Solution, scenario: int):
     for t in range(data.timestep()):
         if data.accessScenario(scenario).demands()[t] > 0.1+sum(sol._solP1[(i, t)] for i in range(data.nbpower1())) + sum(sol._solP2[(i, t)] for i in range(data.nbpower2())): #Vérif demande
             print("La demande ", t, "n'est pas respectée.")    # On vérifie que la demande est tjs respectée #2
+            #print( data.accessScenario(scenario).demands()[t], " < ", 0.1+sum(sol._solP1[(i, t)] for i in range(data.nbpower1())) + sum(sol._solP2[(i, t)] for i in range(data.nbpower2())))
             test = False
 
         for i in range(data.nbpower1()):
@@ -51,5 +52,13 @@ def Checker(data: alldata, sol: Solution, scenario: int):
 
     if test:
         print("Everything is okay :)")
+    return test
 
-        
+def CheckerL(data: alldata, sol: Solution, scenario: int):
+    test = True
+    for t in range(data.timestep()):
+        if data.accessScenario(scenario).demands()[t] > 0.1+sum(sol._solP1[(i, t)] for i in range(data.nbpower1())) + sum(sol._solP2[(i, t)] for i in range(data.nbpower2())): #Vérif demande
+            #print("La demande ", t, "n'est pas respectée.")    # On vérifie que la demande est tjs respectée #2
+            #print( data.accessScenario(scenario).demands()[t], " < ", 0.1+sum(sol._solP1[(i, t)] for i in range(data.nbpower1())) + sum(sol._solP2[(i, t)] for i in range(data.nbpower2())))
+            test = False
+    return test

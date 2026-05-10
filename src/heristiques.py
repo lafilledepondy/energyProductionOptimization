@@ -1,7 +1,7 @@
 import time
 import highspy as hp
 import numpy as np
-import joblib
+# import joblib
 
 try:
     from .data import Readingfile
@@ -1135,42 +1135,151 @@ class MaintenanceHeuristicV2_RF(MaintenanceHeuristicV2_basic):
 #  Heuristic 3 (dichotomie)
 # -----------------------------
 class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
-    # def initial_ab(self, data):
-    #     a = 0.0
-    #     b = 0.0
-
-    #     for i in self.I1:
-    #         for t in self.T:
-    #             b = max(b, self.Cost_it[i][t] * self.D_t[t])
-
-    #     for i_idx, i in enumerate(self.I2):
-    #         for k in range(len(self.RefCost_ik[i_idx])):
-    #             b = max(b, self.RefCost_ik[i_idx][k])
-
-    #     return a, b   
-    
-    # #  Dichotomie 7.2.1 cours de remediation de Optim
-    # @staticmethod # this is added or else it will throw error since we call it without self in solve method
-    # def dichotomie(f, a, b, l, epsilon, max_iter):
-    #     # TODO: remove the max_itere
-    #     k = 0
-    #     ak, bk = a, b
-    #     sequence = [(ak, bk)]
+# ======= INITIALISATION DES MODÈLES (UNE SEULE FOIS) =======
+    def __init__(self, data, scenario):
+        super().__init__()
+        self.set_data_attrs(data, scenario)
+        if self.I1 is None or self.T is None:
+            raise ValueError("Les ensembles I1 ou T ne sont pas initialisés par la classe parente !")
+        self.model1 = hp.Highs()
+        self.model1.setOptionValue("output_flag", False)
         
-    #     while (bk - ak) > l and k <= max_iter:
-    #         mid = (ak + bk) / 2.0
-    #         x1 = mid - epsilon
-    #         x2 = mid + epsilon
-            
-    #         if f(x1) < f(x2):
-    #             bk = x2
-    #         else:
-    #             ak = x1
+        self.model2 = hp.Highs()
+        self.model2.setOptionValue("output_flag", False)
+
+        # ======= VARIABLES SOUS-PROBLÈME 1 =======
+        self.p1_it = self.model1.addVariables(self.I1, self.T, 
+                                type=hp.HighsVarType.kContinuous, lb=0)
+
+        # ======= VARIABLES SOUS-PROBLÈME 2 =======
+        self.y_it = self.model2.addVariables(self.I2, self.T, 
+                                type=hp.HighsVarType.kInteger, lb=0, ub=1)
+        self.p2_it = self.model2.addVariables(self.I2, self.T, 
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        self.r_it = self.model2.addVariables(self.I2, self.T,
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        self.s_it = self.model2.addVariables(self.I2, self.T,
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        
+        index_set_x = [(i, k, t) for i in self.I2 for k in range(len(self.K_i[i])) for t in self.K_i[i][k]]
+        self.x_ikt = self.model2.addVariables(index_set_x, type=hp.HighsVarType.kInteger, lb=0, ub=1)
+
+        # ======= CONTRAINTES STATIQUES (NE CHANGENT JAMAIS) =======
+        self._build_static_constraints()
+
+    def _build_static_constraints(self):
+        # Contraintes SP1
+        for i in self.I1:
+            for t in self.T:
+                self.model1.addConstr(self.p1_it[i, t] <= self.Pmax_1[i][t])
+        
+        # Contraintes SP2 (Stock, Maintenance, etc.)
+        for i in self.I2:
+            for t in self.T:
+                # Puissance max avec maintenance
+                self.model2.addConstr(self.p2_it[i, t] <= self.Pmax_2[i][t] * (1 - self.y_it[i, t]))
                 
-    #         sequence.append((round(ak, 3), round(bk, 3)))
-    #         k += 1
+                # Équilibre de stock
+                if t == 0:
+                    self.model2.addConstr(self.s_it[i,t] == self.X_i[i] - self.p2_it[i,t]*self.D_t[t])
+                else:
+                    self.model2.addConstr(self.s_it[i,t] == self.s_it[i,t-1] - self.p2_it[i,t]*self.D_t[t] + self.r_it[i,t])
+                
+                # Bornes stock
+                self.model2.addConstr(self.s_it[i,t] <= self.Smax_ik[i][0]) # Attention au [0] ici comme discuté
+                self.model2.addConstr(self.s_it[i,t] >= self.Sth_min[i]*0.1)
+
+                # Ravitaillement
+                for k_idx, k in enumerate(self.K_i[i]):
+                    if t in k:
+                        self.model2.addConstr(self.r_it[i,t] <= self.Rmax[i][k_idx] * self.x_ikt[i,k_idx,t])
+                if t not in self.K_i_simple[i]:
+                    self.model2.addConstr(self.r_it[i,t] == 0)
+
+        # Maintenance (Equations 10, 11, 12)
+        for i in self.I2:
+            for k_idx, k in enumerate(self.K_i[i]):
+                self.model2.addConstr(sum(self.x_ikt[i,k_idx, t] for t in k) <= 1)
+                for t in k:
+                    if t + self.DA_ik[i][k_idx] <= len(self.T):
+                        self.model2.addConstr(sum(self.y_it[i, _t] for _t in range(t, t + self.DA_ik[i][k_idx])) 
+                                              >= self.DA_ik[i][k_idx] * self.x_ikt[i, k_idx, t])
+                    else:
+                        self.model2.addConstr(self.x_ikt[i, k_idx, t] == 0)
+
+            self.model2.addConstr(sum(self.y_it[i,t] for t in self.T) == 
+                                  sum(self.DA_ik[i][k_idx] * self.x_ikt[i,k_idx, t] 
+                                      for k_idx, k in enumerate(self.K_i[i]) for t in k))
+    
+    def sousPB_typeI1_modelv(self, mu):
+        # On ne change QUE l'objectif
+        obj = sum((self.Cost_it[i][t]*self.D_t[t] - mu[t]) * self.p1_it[i, t] 
+                  for i in self.I1 for t in self.T)
+        self.model1.setObjective(obj, sense=hp.ObjSense.kMinimize)
+        
+        self.model1.run()
+        
+        if self.model1.getModelStatus() == hp.HighsModelStatus.kOptimal:
+            obj_val = self.model1.getObjectiveValue()
+            sol = {(i,t): self.model1.variableValue(self.p1_it[i,t]) for i in self.I1 for t in self.T}
+            return obj_val, sol
+        return 0, {(i,t): 0.0 for i in self.I1 for t in self.T}
+
+    def sousPB_typeI2_modelv(self, mu):
+        # 1. Mise à jour de l'objectif (Pénalité de la demande)
+        obj = sum(
+            sum(self.RefCost_ik[i][k_idx] * sum(self.r_it[i, t] for t in self.K_i[i][k_idx]) 
+                for k_idx in range(len(self.K_i[i])))
+            - sum(mu[t] * self.p2_it[i, t] for t in self.T)
+            for i in self.I2
+        )
+        self.model2.setObjective(obj, sense=hp.ObjSense.kMinimize)
+        
+        # 2. Résolution
+        self.model2.run()
+        
+        # 3. Extraction
+        model_status = self.model2.getModelStatus()
+        
+        if model_status == hp.HighsModelStatus.kOptimal:
+            obj_value = self.model2.getObjectiveValue()
             
-    #     return ((ak + bk)/2.0), sequence
+            # Initialisation des structures de retour
+            x_ikt_solution = [[] for _ in range(len(self.I2))]
+            y_it_solution = [[0.0 for _ in self.T] for _ in self.I2]
+            p2_solution = {}
+            r_solution = {}
+            s_solution = {}
+
+            for i in self.I2:
+                # Extraction x (format liste de tuples pour les activations)
+                for k_idx, k in enumerate(self.K_i[i]):
+                    for t in k:
+                        val_x = self.model2.variableValue(self.x_ikt[i, k_idx, t])
+                        if val_x > 0.1:
+                            x_ikt_solution[i].append((k_idx, t))
+                
+                for t in self.T:
+                    # Extraction y (format matrice)
+                    y_it_solution[i][t] = self.model2.variableValue(self.y_it[i, t])
+                    
+                    # Extraction p, r, s (format dictionnaire pour calcul subgradient)
+                    p2_val = self.model2.variableValue(self.p2_it[i, t])
+                    p2_solution[(i, t)] = p2_val
+                    
+                    r_val = self.model2.variableValue(self.r_it[i, t])
+                    if r_val > 0.1:
+                        r_solution[(i, t)] = r_val
+                    
+                    s_solution[(i, t)] = self.model2.variableValue(self.s_it[i, t])
+
+            return obj_value, x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
+
+        else:
+            # En cas d'échec, on renvoie l'infini pour le dual (minimisation)
+            # et des structures vides compatibles pour ne pas faire planter la boucle
+            p2_empty = {(i, t): 0.0 for i in self.I2 for t in self.T}
+            return float('inf'), [], [], p2_empty, {}, {}
     
     def sousPB_typeI1_model(self, data, scenario, mu, start_time : float):
         # ======= MODEL =======
@@ -1206,16 +1315,16 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         model.run()
         runtime = time.time() - start_time
 
-        print("\n----------------------------------")
-        info = model.getInfo()
-        model_status = model.getModelStatus()
-        print('Status de la résolution par le solveur = ', model.modelStatusToString(model_status))
-        print("Valeur de la fonction objectif = ", model.getObjectiveValue())
-        print("Meilleure borne inférieure sur la valeur de la fonction objectif: ", info.mip_dual_bound)
-        print("Gap: ", info.mip_gap)
-        print("# de noeuds explorés: ", info.mip_node_count)
-        print("Temps de résolution (en secondes) = ", runtime)
-        print("----------------------------------")
+        # print("\n----------------------------------")
+        # info = model.getInfo()
+        # model_status = model.getModelStatus()
+        # print('Status de la résolution par le solveur = ', model.modelStatusToString(model_status))
+        # print("Valeur de la fonction objectif = ", model.getObjectiveValue())
+        # print("Meilleure borne inférieure sur la valeur de la fonction objectif: ", info.mip_dual_bound)
+        # print("Gap: ", info.mip_gap)
+        # print("# de noeuds explorés: ", info.mip_node_count)
+        # print("Temps de résolution (en secondes) = ", runtime)
+        # print("----------------------------------")
         
         # On vérifie si une solution primale exploitable existe (optimale ou faisable)
         model_status = model.getModelStatus()
@@ -1355,7 +1464,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
                     if t + self.DA_ik[i][k_idx] <= len(self.T):
                         model.addConstr(
                             sum(y_it[i, _t] for _t in range(t, t + self.DA_ik[i][k_idx]))
-                            == # in the avancement_TER it was == 
+                            >= # in the avancement_TER it was == 
                             self.DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
                             name=f"Link_y_xx_i{i}_t{t}_k{k_idx}"
                         )
@@ -1422,8 +1531,8 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
 
     def dualLag_function(self, mu, data, scenario):
         total = 0.0
-        valP1 , p1_sol = self.sousPB_typeI1_model(data, scenario, mu, 0.0)
-        valP2, x_sol, y_sol, p2_sol, r_sol, s_sol = self.sousPB_typeI2_model(data, scenario, mu, 0.0)
+        valP1 , p1_sol = self.sousPB_typeI1_modelv(mu)
+        valP2, x_sol, y_sol, p2_sol, r_sol, s_sol = self.sousPB_typeI2_modelv(mu)
         total = valP2 + valP1 + sum(mu[t]*self.Dem_t[t] for t in self.T)
 
         return total, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol
@@ -1437,25 +1546,27 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         initial_mu,
         min_step_size: float,
         initial_step_size: float = 2.0,
-        alpha: float = 0.8,
-        max_iterations: int | None = None,
+        alpha: float = 0.95,
+        max_iterations: int = 200,
     ):
         mu = initial_mu 
 
         step_size = float(initial_step_size)
 
-        best_Dualvalue = 0
+        best_Dualvalue = -float("inf")
+      
         p1_best, p2_best, x_best, y_best, r_best, s_best = None , None , None , None , None , None 
         # history = [] # to track
 
         iteration = 0
-        while step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+        while iteration < max_iterations :#step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
             # solve Lagrangian subproblem
             dual_value, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.dualLag_function(mu, data, scenario)
 
             # keep best
             if dual_value > best_Dualvalue:
                 best_Dualvalue = dual_value
+    
                 p1_best, p2_best, x_best, y_best, r_best, s_best = p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol
 
             # subgradient
@@ -1476,17 +1587,19 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             #     "dual_value": dual_value,
             #     "mu": np.copy(mu)
             # })
+            print(dual_value)
             iteration += 1
+
         return round(best_Dualvalue, 2), p1_best, p2_best, x_best, y_best, r_best, s_best
     
 
     def solve(self, data: Readingfile, scenario: int) -> Solution:
         try:
-            from .checker import Checker
+            from .checker import CheckerL
         except ImportError:
-            from checker import Checker        
+            from checker import CheckerL        
 
-        self.set_data_attrs(data, scenario)
+        # self.set_data_attrs(data, scenario)
 
         start_time = time.time()
         mu_initial = [0 for t in self.T]
@@ -1506,20 +1619,21 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             for k_index, t_start in campaigns
         }
         sol_sousPB_list = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_] 
-        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", best_Dualvalue, 0, 0 , sol_sousPB_list)
+        to = time.time() - start_time
+        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Realisable", best_Dualvalue, 0, to , sol_sousPB_list)
 
-        # if Checker(data, sol_sousPB, scenario):
-        return sol_sousPB  # dual_bound, total_runtime + lp_runtime, sol)
+        if CheckerL(data, sol_sousPB, scenario):
+            return sol_sousPB
             
-        # else :
-        #     # list to dict 
+        else :
+            # list to dict 
             
-        #     # inherited LP production plan
-        #     production_plan = self.computeProductionPlanLP(
-        #         data, scenario, y_sol, x_sol, start_time
-        #     )
-        #     obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
-        #     sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
+            # inherited LP production plan
+            production_plan = self.computeProductionPlanLP(
+                data, scenario, y_sol, x_sol, start_time
+            )
+            obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
+            sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
 
-        #     return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
+            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol)
           

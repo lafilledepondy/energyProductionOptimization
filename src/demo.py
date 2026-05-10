@@ -178,7 +178,7 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
     
-    heuristic = MaintenanceHeuristicV3_dichotomie()
+    heuristic = MaintenanceHeuristicV3_dichotomie(data, scheme)
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -186,7 +186,7 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
         return
 
     print_solution(sol)
-    # Checker(data, sol, scheme)
+    Checker(data, sol, scheme)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
