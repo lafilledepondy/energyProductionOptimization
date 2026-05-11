@@ -6,7 +6,7 @@ def main():
 
     # read_file_demo()
 
-    # model_demo("toy.txt", 0)
+    model_demo("toy.txt", 0)
     # model_demo("toyy.txt", 0)
     # model_demo("data0.txt", 0)
     # model_demo("data0.txt", 1)
@@ -52,13 +52,14 @@ def main():
     # heuristic_2_RF_demo("data1.txt", 1, ) # gap = ?
 
     # heuristic_3_dichotomie_demo("toy.txt", 0, 63274200.0) # gap = ?
-    heuristic_3_dichotomie_demo("toyy.txt", 0, 58651800.0) # gap = ?
+    # heuristic_3_dichotomie_demo("toyy.txt", 0, 58651800.0) # gap = ?
     # heuristic_3_dichotomie_demo("data0.txt", 0, 8610050657314.8) # gap = ?
     # heuristic_3_dichotomie_demo("data0.txt", 1, 8846806435123.2) # gap = ?
     # heuristic_3_dichotomie_demo("data1.txt", 0, 170492782000) # gap = ?
     # heuristic_3_dichotomie_demo("data5.txt", 0, 113322696311.46948) # gap = ?
     # heuristic_3_dichotomie_demo("data2.txt", 0, 1.4727594e+11) # gap = ?
     # heuristic_3_dichotomie_demo("data4.txt", 1, 100585552199.51825) # gap = ?
+    # heuristic_3_dichotomie_demo("data3.txt", 0, 1.39533299e+11) 
 
 if __name__ == "__main__":
     main()    

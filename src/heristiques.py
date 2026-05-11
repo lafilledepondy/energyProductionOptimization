@@ -1542,7 +1542,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
                       for t in self.T]
         return ssgradient
 
-    def subgradient_basic( self,data, scenario, 
+    def subgradient_basic( self,data, scenario, time_start : float,
         initial_mu,
         min_step_size: float,
         initial_step_size: float = 2.0,
@@ -1559,7 +1559,8 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         # history = [] # to track
 
         iteration = 0
-        while iteration < max_iterations :#step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+        
+        while iteration < max_iterations or time.time() - time_start < 7200: #step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
             # solve Lagrangian subproblem
             dual_value, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.dualLag_function(mu, data, scenario)
 
@@ -1604,7 +1605,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
         start_time = time.time()
         mu_initial = [0 for t in self.T]
 
-        best_Dualvalue, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.subgradient_basic( data, scenario, mu_initial, 0.8)
+        best_Dualvalue, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.subgradient_basic( data, scenario, start_time, mu_initial, 0.8)
 
 
         y_it_solution_sousPB2_ = {
