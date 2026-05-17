@@ -1,12 +1,17 @@
 from demo import *
-
+from helperPlots import (
+    draw_cumulative_production_stack,
+    extract_visualization_data_from_solution,
+    draw_maintenance_schedule_production,
+    save_stack_legend,
+)
 
 def main():
     print("=" * (15 - 2) + " TER " + "=" * (15 - 2))
 
     # read_file_demo()
 
-    model_demo("toy.txt", 0)
+    # model_demo("toy.txt", 0)
     # model_demo("toyy.txt", 0)
     # model_demo("data0.txt", 0)
     # model_demo("data0.txt", 1)
@@ -44,7 +49,7 @@ def main():
 
     # heuristic_2_2_1demo("data5.txt", 0, 113322696311.46948) # gap = -2.13% 
 
-    # heuristic_2_RF_demo("toy.txt", 0, 58651800.0) # gap = 100% comme V2_basic
+    # heuristic_2_RF_demo("toy.txt", 0, 63274200.0) # gap = 100% comme V2_basic
     # heuristic_2_RF_demo("toyy.txt", 0, 58651800.0) # gap = -6.85%
     # heuristic_2_RF_demo("data0.txt", 0, 8610050657314.8) # gap = -0.44%
     # heuristic_2_RF_demo("data0.txt", 1, 8846806435123.2) # gap = -0.43%
@@ -60,6 +65,41 @@ def main():
     # heuristic_3_dichotomie_demo("data2.txt", 0, 1.4727594e+11) # gap = ?
     # heuristic_3_dichotomie_demo("data4.txt", 1, 100585552199.51825) # gap = ?
     # heuristic_3_dichotomie_demo("data3.txt", 0, 1.39533299e+11) 
+
+
+    dataFile = "toyy.txt"
+    scheme = 0
+    # data, sol = heuristic_2_demo(dataFile, scheme, 58651800.0)
+    # title_stack = "Heuristique basique Solution - toy"
+    # title_stack = "Plan de production réalisable - Heuristique basique - toy"
+
+    # data, sol = heuristic_2_2_demo(dataFile, scheme, 58651800.0)
+    # title_stack = "Heuristique multi-campagnes Solution - toy"
+
+    # data, sol = heuristic_2_2_1demo(dataFile, scheme, 58651800.0)
+    # title_stack = "Heuristique améliorée Solution - toy"
+    # title_stack = "Plan de production réalisable - Heuristique améliorée - toy"
+
+    data, sol = heuristic_3_dichotomie_demo(dataFile, scheme, 58651800.0)
+    title_stack = "Relax. Lag. Solution - toy"
+    # title_stack = "Plan de production réalisable - Relax. Lag. - toy"
+
+    # data, sol = model_demo(dataFile, scheme)
+    # title_stack = "Solution réalisable"
+    # title_stack = "Plan de production réalisable - MILP - toy"
+
+    prod_data, maintenance_blocks, units, recharge_blocks, sols_blocks = extract_visualization_data_from_solution(sol, data)
+    draw_maintenance_schedule_production(prod_data, units, title_stack, maintenance_blocks, recharge_blocks, sols_blocks)
+
+    # draw_cumulative_production_stack(prod_data, data, scheme, units, title_stack)
+    # labels, colors = draw_cumulative_production_stack(prod_data, data, scheme, units, title_stack)
+    # save_stack_legend(labels, colors, f"{title_stack.replace(' ', '_')}_legend.png")
+
+
+    # title = "Période de maintenance possible pour chaque unité (i) - toy"
+    # draw_maintenance_schedule_production([], units, title, maintenance_blocks, [])
+    
+
 
 if __name__ == "__main__":
     main()    

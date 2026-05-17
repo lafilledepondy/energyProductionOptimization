@@ -1,0 +1,4 @@
+toyy.txt s = 0 bd = 58707000.0 gap = 0.09% secondes = 7200
+
+data0.txt s = 0 bd = 8495930345819.538 gap = 0.013% secondes = 7200
+data0.txt s = 1 bd = 8656250681126.741 gap = 0.02% secondes = 7200

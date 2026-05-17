@@ -682,6 +682,7 @@ class MaintenanceHeuristicV2_basic(AbstractMaintenanceHeuristic):
         }
 
         sol = [p1_sol, p2_sol, y_sol, r_sol, s_sol, x_sol]
+
         total_runtime = time.time() - start_time
 
         return Solution(f"HEURISTIC_2_{status}", obj_value, dual_bound, total_runtime + lp_runtime, sol)
@@ -1503,20 +1504,49 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             model_status == hp.HighsModelStatus.kOptimal
             or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
         ):
-            obj_value = model.getObjectiveValue()
-            x_ikt_solution = [[] for _ in range(len(self.I2))]
-            for i in self.I2 :
-                for k_idx, k in enumerate(self.K_i[i]) :
-                    for t in k :
-                        if model.variableValue(x_ikt[i,k_idx, t]) > 0.1 :
-                            x_ikt_solution[i].append((k_idx, t))
+            # obj_value = model.getObjectiveValue()
+            # x_ikt_solution = [[] for _ in range(len(self.I2))]
+            # for i in self.I2 :
+            #     for k_idx, k in enumerate(self.K_i[i]) :
+            #         for t in k :
+            #             if model.variableValue(x_ikt[i,k_idx, t]) > 0.1 :
+            #                 x_ikt_solution[i].append((k_idx, t))
                    
-            # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
-            y_it_solution = [[model.variableValue(y_it[i,t]) for t in self.T] for i in range(len(self.I2))]
-            # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
-            p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in self.I2 for t in self.T}
-            r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in self.I2 for t in self.T if model.variableValue(r_it[i,t]) > 0.1}
-            s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in self.I2 for t in self.T}
+            # # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
+            # y_it_solution = [[model.variableValue(y_it[i,t]) for t in self.T] for i in range(len(self.I2))]
+            # # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
+            # p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in self.I2 for t in self.T}
+            # r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in self.I2 for t in self.T if model.variableValue(r_it[i,t]) > 0.1}
+            # s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in self.I2 for t in self.T}
+            obj_value = model.getObjectiveValue()
+            
+            solution = model.getSolution().col_value
+
+            x_ikt_solution = {
+                (i, k_idx, t): solution[var.index]
+                for (i, k_idx, t), var in x_ikt.items()
+            }
+
+            y_it_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in y_it.items()
+            }
+
+            p2_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in p2_it.items()
+            }
+
+            r_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in r_it.items()
+                if solution[var.index] > 0.1
+            }
+
+            s_solution = {
+                (i, t): solution[var.index]
+                for (i, t), var in s_it.items()
+            }
 
         else:
             obj_value = -1
@@ -1560,7 +1590,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
 
         iteration = 0
         
-        while iteration < max_iterations or time.time() - time_start < 7200: #step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+        while iteration < max_iterations or time.time() - time_start < 100: #step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
             # solve Lagrangian subproblem
             dual_value, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.dualLag_function(mu, data, scenario)
 
@@ -1588,7 +1618,7 @@ class MaintenanceHeuristicV3_dichotomie(MaintenanceHeuristicV2_basic):
             #     "dual_value": dual_value,
             #     "mu": np.copy(mu)
             # })
-            print(dual_value)
+            print(f"Iteration {iteration}: Dual Value = {dual_value}")
             iteration += 1
 
         return round(best_Dualvalue, 2), p1_best, p2_best, x_best, y_best, r_best, s_best

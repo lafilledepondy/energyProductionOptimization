@@ -1,8 +1,7 @@
 digraph {
 	rankdir=TB
 	node [color=seagreen fillcolor=honeydew shape=ellipse style=filled]
-	A [label="Début Heuristique basique améliorée
-Multi-campagnes"]
+	A [label="Début Heuristique améliorée"]
 	K [label="Solution finale"]
 	node [color=darkorange fillcolor=papayawhip shape=diamond]
 	E [label="Date d'interruption réalisable?"]

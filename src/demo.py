@@ -45,6 +45,7 @@ def model_demo(file_name: str, scenario: int):
     print(sol._solx)
     print(sol._soly)
     Checker(data, sol, scenario)
+    return data, sol
 
 def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
@@ -73,6 +74,8 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
+
+    return data, sol
 
 def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
@@ -103,6 +106,8 @@ def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
     
+    return data, sol
+
 def heuristic_2_2_1demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
         from .data import Readingfile
@@ -131,6 +136,8 @@ def heuristic_2_2_1demo(file_name: str, scheme:int, optimal_value: float = None)
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
+
+    return data, sol
 
 def heuristic_2_RF_demo(file_name: str, scheme:int, optimal_value: float = None):
     try:
@@ -196,3 +203,5 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
     if optimal_value is not None:
         gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
+
+    return data, sol
