@@ -1,10 +1,8 @@
-# Energy Production and Power Plant Maintenance Planning
+# Energy Production Optimization
 
-## Description
+## Overview
 
-This project studies the **planning of electricity production and power plant maintenance**. The objective is to determine an optimal schedule for shutting down power plants for maintenance while ensuring that electricity demand is satisfied at minimal production cost.
-
-Power plants, particularly nuclear plants, must periodically stop operating to refuel and perform maintenance operations. Planning these outages is a complex optimization problem because many operational, safety, and logistical constraints must be satisfied simultaneously while maintaining sufficient electricity generation capacity.
+An optimization system for planning electricity production and power plant maintenance scheduling. Determines optimal maintenance schedules for power plants while minimizing total production costs and meeting demand constraints.
 
 The goal of this project is therefore to model the electricity production system and compute:
 
@@ -13,17 +11,15 @@ The goal of this project is therefore to model the electricity production system
 
 such that the **total cost of electricity production is minimized** over the planning horizon.
 
-This work is conducted as part of a **TER (Travail d’Étude et de Recherche)** and is inspired by the **ROADEF/EURO Challenge 2010**, a well-known industrial optimization challenge proposed by EDF.
+This work is conducted as part of a **TER (Travail d’Étude et de Recherche)** under supervision of [Dr. Mariam SANGARE](linkedin.com/in/mariam-sangare01) and is inspired by the **ROADEF/EURO Challenge 2010**, a well-known industrial optimization challenge proposed by EDF.
 
-## Visuals
-
-## Installation
+## Quick Start
 
 ### Requirements
 
 - Python 3.1+
 
-### Setup
+### Installation
 
 ```bash
 # Clone the repository
@@ -39,14 +35,19 @@ source venv/bin/activate # on Linux
 pip install -r requirements.txt
 ```
 
-## Usage
+### Usage
 
 ```bash
-./main.py
+python3 main.py
 ```
 
-## Roadmap
+## Documentation
+
+- **[Presentation](assets/Presentation_TER.pdf)** – TER presentation slides
+- **[Report](assets/rapport_TER.pdf)** – TER final report (note: report is in French ; it doesn't include the relaxation lineare & relaxation lagrangienne of the project, which is still in progress)
+- **[Project Specifications](assets/sujet_MaintenanceCentrales.pdf)** – Adapted project specifications
+- **[Original Specifications](assets/sujet_Original.pdf)** – Original project specifications
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details
