@@ -18,27 +18,27 @@ from helperPlots import (
 ### data5 has 30 scenatios
 TEST_CASES = {
     # ("FileName", Scenario): OptimalValue
-    ("toy.txt", 0): 63274200.0,
+    # ("toy.txt", 0): 63274200.0,
     ("toyy.txt", 0): 58651800.0,
-    ("data0.txt", 0): 8610050657314.8,
-    ("data0.txt", 1): 8846806435123.2,
-    ("data1.txt", 0): 170492782000,
-    ("data1.txt", 1): 165495870429.0952,
-    ("data1.txt", 2): 162841643956.18933,
-    ("data1.txt", 3): 150696133283.6359,
-    ("data1.txt", 4): 210107150010.10928,
-    ("data2.txt", 0): 1.4727594e+11,
-    ("data2.txt", 1): 152135839927.7093,
-    ("data3.txt", 0): 1.39533299e+11,
-    ("data3.txt", 1): 130381283710.15749,
-    ("data4.txt", 0): 115765240184.99612,
-    ("data4.txt", 1): 100585552199.51825,
-    ("data5.txt", 0): 113322696311.46948,
+    # ("data0.txt", 0): 8610050657314.8,
+    # ("data0.txt", 1): 8846806435123.2,
+    # ("data1.txt", 0): 170492782000,
+    # ("data1.txt", 1): 165495870429.0952,
+    # ("data1.txt", 2): 162841643956.18933,
+    # ("data1.txt", 3): 150696133283.6359,
+    # ("data1.txt", 4): 210107150010.10928,
+    # ("data2.txt", 0): 1.4727594e+11,
+    # ("data2.txt", 1): 152135839927.7093,
+    # ("data3.txt", 0): 1.39533299e+11,
+    # ("data3.txt", 1): 130381283710.15749,
+    # ("data4.txt", 0): 115765240184.99612,
+    # ("data4.txt", 1): 100585552199.51825,
+    # ("data5.txt", 0): 113322696311.46948,
 }
 
 HEURISTICS = {
     # "heuristic": True or False,
-    "heuristic_basic": False,
+    "heuristic_basic": True,
     "heuristic_multiCamp": False,
     "heuristic_optXandY": False,
     "heuristic_RF": False,
@@ -58,6 +58,9 @@ def main():
             if enabled:
                 demo_func = globals()[f"{heuristic}_demo"]
                 demo_func(filename, scenario, gap_value)
+                print("\n" + "#" * 60)
+                print("#" * 60)
+                print("#" * 60 + "\n")
 
     ####### PLOTS #######
     # dataFile = "toyy.txt"
