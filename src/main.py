@@ -38,7 +38,7 @@ TEST_CASES = {
 
 HEURISTICS = {
     # "heuristic": True or False,
-    "heuristic_basic": True,
+    "heuristic_basic": False,
     "heuristic_multiCamp": False,
     "heuristic_optXandY": False,
     "heuristic_RF": False,
