@@ -1,15 +1,23 @@
-from demo import *
+from demo import (model_demo, heuristic_basic_demo, 
+    heuristic_basic_demo, heuristic_multiCamp_demo, 
+    heuristic_optXandY_demo, heuristic_RF_demo, 
+    heuristic_relaxLagrange_demo
+    )
 from helperPlots import (
     draw_cumulative_production_stack,
     extract_visualization_data_from_solution,
     draw_maintenance_schedule_production,
-    save_stack_legend,
-)
+    save_stack_legend
+    )
 
 def main():
     print("=" * (15 - 2) + " TER " + "=" * (15 - 2))
 
     # read_file_demo()
+
+    ### data0 has 2 scenatios
+    ### data1 has 10 scenatios
+    ### data2 has 20 scenatios
 
     # model_demo("toy.txt", 0)
     # model_demo("toyy.txt", 0)
@@ -18,9 +26,7 @@ def main():
     # model_demo("data1.txt", 0)
     # model_demo("data4.txt", 0)
 
-    ### data0 has 2 scenatios
-    ### data1 has 10 scenatios
-    ### data2 has 20 scenatios
+
 
     # heuristic_2_demo("toy.txt", 0, 63274200.0) 
     #heuristic_2_demo("data0.txt", 0, 8610050657314.8) 
