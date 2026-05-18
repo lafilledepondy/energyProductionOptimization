@@ -50,7 +50,8 @@ python3 main.py
 ## Documentation
 
 - **[Presentation](assets/Presentation_TER.pdf)** – TER presentation slides
-- **[Report](assets/rapport_TER.pdf)** – TER final report (note: report is in French ; it doesn't include the relaxation lineare & relaxation lagrangienne of the project, which is still in progress)
+- **[Report](assets/rapport_TER.pdf)** – TER final report (note: report is in French ; it doesn't include the relaxation lineare & relaxation lagrangienne of the project)
+- **[Relaxations: linéaire & lagrangienne](assets/relaxation_lineaire_lagrangienne.pdf)** – Relaxations report (linear and Lagrangian methods) (note: report is in English)
 - **[Project Specifications](assets/sujet_MaintenanceCentrales.pdf)** – Adapted project specifications
 - **[Original Specifications](assets/sujet_Original.pdf)** – Original project specifications
 

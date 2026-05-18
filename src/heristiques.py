@@ -1039,17 +1039,6 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         model.run()
         runtime = time.time() - start_time
 
-        # print("\n----------------------------------")
-        # info = model.getInfo()
-        # model_status = model.getModelStatus()
-        # print('Status de la résolution par le solveur = ', model.modelStatusToString(model_status))
-        # print("Valeur de la fonction objectif = ", model.getObjectiveValue())
-        # print("Meilleure borne inférieure sur la valeur de la fonction objectif: ", info.mip_dual_bound)
-        # print("Gap: ", info.mip_gap)
-        # print("# de noeuds explorés: ", info.mip_node_count)
-        # print("Temps de résolution (en secondes) = ", runtime)
-        # print("----------------------------------")
-        
         # On vérifie si une solution primale exploitable existe (optimale ou faisable)
         model_status = model.getModelStatus()
         primal_status = model.getInfo().primal_solution_status
