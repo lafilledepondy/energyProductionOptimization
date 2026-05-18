@@ -52,18 +52,18 @@ def heuristic_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
-        from .heristiques import MaintenanceHeuristicV2_basic
+        from .heristiques import MaintenanceHeuristic_basic
     except ImportError:
         from data import Readingfile
         from checker import Checker
         from solution import print_solution
-        from heristiques import MaintenanceHeuristicV2_basic
+        from heristiques import MaintenanceHeuristic_basic
 
     print("Running heuristic 2 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    heuristic = MaintenanceHeuristicV2_basic()
+    heuristic = MaintenanceHeuristic_basic()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -82,18 +82,18 @@ def heuristic_2_2_demo(file_name: str, scheme:int, optimal_value: float = None):
         from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
-        from .heristiques import MaintenanceHeuristicV2MultiCampaign
+        from .heristiques import MaintenanceHeuristic_MultiCampaign
     except ImportError:
         from data import Readingfile
         from checker import Checker
         from solution import print_solution
-        from heristiques import MaintenanceHeuristicV2MultiCampaign
+        from heristiques import MaintenanceHeuristic_MultiCampaign
 
     print("Running heuristic 2_2 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    heuristic = MaintenanceHeuristicV2MultiCampaign()
+    heuristic = MaintenanceHeuristic_MultiCampaign()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -113,18 +113,18 @@ def heuristic_2_2_1demo(file_name: str, scheme:int, optimal_value: float = None)
         from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
-        from .heristiques import MaintenanceHeuristicV2MultiCampaign_2
+        from .heristiques import MaintenanceHeuristic_OptXandY
     except ImportError:
         from data import Readingfile
         from checker import Checker
         from solution import print_solution
-        from heristiques import MaintenanceHeuristicV2MultiCampaign_2
+        from heristiques import MaintenanceHeuristic_OptXandY
 
     print("Running heuristic 2_2_1 on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    heuristic = MaintenanceHeuristicV2MultiCampaign_2()
+    heuristic = MaintenanceHeuristic_OptXandY()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -144,18 +144,18 @@ def heuristic_2_RF_demo(file_name: str, scheme:int, optimal_value: float = None)
         from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
-        from .heristiques import MaintenanceHeuristicV2_RF
+        from .heristiques import MaintenanceHeuristic_RF
     except ImportError:
         from data import Readingfile
         from checker import Checker
         from solution import print_solution
-        from heristiques import MaintenanceHeuristicV2_RF
+        from heristiques import MaintenanceHeuristic_RF
 
     print("Running heuristic 2_RF on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
 
-    heuristic = MaintenanceHeuristicV2_RF()
+    heuristic = MaintenanceHeuristic_RF()
     sol = heuristic.solve(data, scheme)
 
     if sol is None:
@@ -174,18 +174,18 @@ def heuristic_3_dichotomie_demo(file_name: str, scheme:int, optimal_value: float
         from .data import Readingfile
         from .checker import Checker
         from .solution import print_solution
-        from .heristiques import MaintenanceHeuristicV3_dichotomie
+        from .heristiques import MaintenanceHeuristic_relaxLagrange
     except ImportError:
         from data import Readingfile
         from checker import Checker
         from solution import print_solution
-        from heristiques import MaintenanceHeuristicV3_dichotomie
+        from heristiques import MaintenanceHeuristic_relaxLagrange
 
     print("Running heuristic 3_dichotomie on instance:", file_name, "with scenario", scheme)
     data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
     data = Readingfile(str(data_file))
     
-    heuristic = MaintenanceHeuristicV3_dichotomie(data, scheme)
+    heuristic = MaintenanceHeuristic_relaxLagrange(data, scheme)
     sol , soldual = heuristic.solve(data, scheme)
 
     if sol is None:
