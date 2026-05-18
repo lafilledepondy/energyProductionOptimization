@@ -10,68 +10,54 @@ from helperPlots import (
     save_stack_legend
     )
 
+### data0 has 2 scenatios
+### data1 has 10 scenatios
+### data2 has 20 scenatios
+### dara3 has 20 scenatios
+### data4 has 30 scenatios
+### data5 has 30 scenatios
+TEST_CASES = {
+    # ("FileName", Scenario): OptimalValue
+    ("toy.txt", 0): 63274200.0,
+    ("toyy.txt", 0): 58651800.0,
+    ("data0.txt", 0): 8610050657314.8,
+    ("data0.txt", 1): 8846806435123.2,
+    ("data1.txt", 0): 170492782000,
+    ("data1.txt", 1): 165495870429.0952,
+    ("data1.txt", 2): 162841643956.18933,
+    ("data1.txt", 3): 150696133283.6359,
+    ("data1.txt", 4): 210107150010.10928,
+    ("data2.txt", 0): 1.4727594e+11,
+    ("data2.txt", 1): 152135839927.7093,
+    ("data3.txt", 0): 1.39533299e+11,
+    ("data3.txt", 1): 130381283710.15749,
+    ("data4.txt", 0): 115765240184.99612,
+    ("data4.txt", 1): 100585552199.51825,
+    ("data5.txt", 0): 113322696311.46948,
+}
+
+HEURISTICS = {
+    # "heuristic": True or False,
+    "heuristic_basic": False,
+    "heuristic_multiCamp": False,
+    "heuristic_optXandY": False,
+    "heuristic_RF": False,
+    "heuristic_relaxLagrange": False,
+}
+
 def main():
     print("=" * (15 - 2) + " TER " + "=" * (15 - 2))
 
     # read_file_demo()
 
-    ### data0 has 2 scenatios
-    ### data1 has 10 scenatios
-    ### data2 has 20 scenatios
-
     # model_demo("toy.txt", 0)
     # model_demo("toyy.txt", 0)
-    # model_demo("data0.txt", 0)
-    # model_demo("data0.txt", 1)
-    # model_demo("data1.txt", 0)
-    # model_demo("data4.txt", 0)
 
-
-
-    # heuristic_2_demo("toy.txt", 0, 63274200.0) 
-    #heuristic_2_demo("data0.txt", 0, 8610050657314.8) 
-    #heuristic_2_demo("data0.txt", 1, 8846806435123.2) 
-    #heuristic_2_demo("data1.txt", 0, 170492782000) 
-    #heuristic_2_demo("data5.txt", 0, 113322696311.46948) 
-    # heuristic_2_demo("data2.txt", 0, 1.4727594e+11) 
-
-#    heuristic_2_2_demo("toy.txt", 0, 63274200.0) 
-    # heuristic_2_2_demo("toyy.txt", 0, 58651800.0) 
-    #heuristic_2_2_demo("data0.txt", 0, 8610050657314.8) 
-    #heuristic_2_2_demo("data0.txt", 1, 8846806435123.2) 
-    #heuristic_2_2_demo("data1.txt", 0, 170492782000) 
-    #heuristic_2_2_demo("data1.txt", 1, 165495870429.0952) 
-   # heuristic_2_2_demo("data1.txt", 2, 162841643956.18933) 
-   # heuristic_2_2_demo("data1.txt", 3, 150696133283.6359)
-    # heuristic_2_2_demo("data1.txt", 4, 210107150010.10928) 
-    #heuristic_2_2_demo("data2.txt", 0, 1.4727594e+11) 
-    #heuristic_2_2_demo("data2.txt", 1, 152135839927.7093) 
-   # heuristic_2_2_demo("data3.txt", 0, 1.39533299e+11) 
-    #heuristic_2_2_demo("data3.txt", 1, 130381283710.15749) 
-    #heuristic_2_2_demo("data5.txt", 0, 113322696311.46948) 
-    # heuristic_2_2_demo("data2.txt", 0, 1.4727594e+11) 
-    #heuristic_2_2_demo("data4.txt", 0, 115765240184.99612) 
-    #heuristic_2_2_demo("data4.txt", 1, 100585552199.51825)
-
-    # heuristic_2_2_1demo("toyy.txt", 0, 58651800) 
-
-    # heuristic_2_RF_demo("toy.txt", 0, 63274200.0) 
-    # heuristic_2_RF_demo("toyy.txt", 0, 58651800.0) 
-    # heuristic_2_RF_demo("data0.txt", 0, 8610050657314.8) 
-    # heuristic_2_RF_demo("data0.txt", 1, 8846806435123.2) 
-    # heuristic_2_RF_demo("data1.txt", 0, 170492782000) 
-    # heuristic_2_RF_demo("data1.txt", 1, )
-
-    # heuristic_3_dichotomie_demo("toy.txt", 0, 63274200.0)
-    # heuristic_3_dichotomie_demo("toyy.txt", 0, 58651800.0)
-    # heuristic_3_dichotomie_demo("data0.txt", 0, 8610050657314.8) 
-    # heuristic_3_dichotomie_demo("data0.txt", 1, 8846806435123.2) 
-    # heuristic_3_dichotomie_demo("data1.txt", 0, 170492782000) 
-    # heuristic_3_dichotomie_demo("data5.txt", 0, 113322696311.46948) 
-    # heuristic_3_dichotomie_demo("data2.txt", 0, 1.4727594e+11) 
-    # heuristic_3_dichotomie_demo("data4.txt", 1, 100585552199.51825) 
-    # heuristic_3_dichotomie_demo("data3.txt", 0, 1.39533299e+11) 
-
+    for (filename, scenario), gap_value in TEST_CASES.items():
+        for heuristic, enabled in HEURISTICS.items():
+            if enabled:
+                demo_func = globals()[f"{heuristic}_demo"]
+                demo_func(filename, scenario, gap_value)
 
     ####### PLOTS #######
     # dataFile = "toyy.txt"
