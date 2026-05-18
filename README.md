@@ -11,7 +11,13 @@ The goal of this project is therefore to model the electricity production system
 
 such that the **total cost of electricity production is minimized** over the planning horizon.
 
-This work is conducted as part of a **TER (Travail d’Étude et de Recherche)** under supervision of [Dr. Mariam SANGARE](linkedin.com/in/mariam-sangare01) and is inspired by the **ROADEF/EURO Challenge 2010**, a well-known industrial optimization challenge proposed by EDF.
+This work is conducted as part of a **TER**[^ter] under supervision of [Dr. Mariam SANGARE](linkedin.com/in/mariam-sangare01) and is inspired by the **ROADEF/EURO Challenge 2010**[^roadef-euro], a well-known industrial optimization challenge proposed by EDF[^edf].
+
+[^ter]: _Travail d’Étude et de Recherche_, a French academic research project or study report.
+
+[^roadef-euro]: ROADEF/EURO is the European industrial optimization challenge organized by the French Operations Research and Decision Support Society (ROADEF) and EURO, the Association of European Operational Research Societies.
+
+[^edf]: EDF stands for _Électricité de France_, the French electric utility company that proposed the challenge.
 
 ## Quick Start
 
