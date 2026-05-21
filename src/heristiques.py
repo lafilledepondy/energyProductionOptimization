@@ -1,7 +1,6 @@
 import time
 import highspy as hp
 import numpy as np
-# import joblib
 
 try:
     from .data import Readingfile
@@ -940,14 +939,30 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         obj = sum((self.Cost_it[i][t]*self.D_t[t] - mu[t]) * self.p1_it[i, t] 
                   for i in self.I1 for t in self.T)
         self.model1.setObjective(obj, sense=hp.ObjSense.kMinimize)
-        
+
         self.model1.run()
         
-        if self.model1.getModelStatus() == hp.HighsModelStatus.kOptimal:
+        model_status = self.model1.getModelStatus()
+        primal_status = self.model1.getInfo().primal_solution_status
+
+        if (
+            model_status == hp.HighsModelStatus.kOptimal
+            or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
+        ):
             obj_val = self.model1.getObjectiveValue()
-            sol = {(i,t): self.model1.variableValue(self.p1_it[i,t]) for i in self.I1 for t in self.T}
-            return obj_val, sol
-        return 0, {(i,t): 0.0 for i in self.I1 for t in self.T}
+
+            try:
+                solution = self.model1.getSolution().col_value
+                p1_sol = {
+                    (i, t): solution[var.index]
+                    for (i, t), var in self.p1_it.items()
+                }
+            except Exception:
+                p1_sol = {(i, t): self.model1.variableValue(self.p1_it[i, t]) for i in self.I1 for t in self.T}
+
+            return obj_val, p1_sol
+
+        return 0, {(i, t): 0.0 for i in self.I1 for t in self.T}
 
     def sousPB_typeI2_modelv(self, mu):
         # 1. Mise à jour de l'objectif (Pénalité de la demande)
@@ -964,10 +979,14 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         
         # 3. Extraction
         model_status = self.model2.getModelStatus()
-        
-        if model_status == hp.HighsModelStatus.kOptimal:
+        primal_status = self.model2.getInfo().primal_solution_status
+
+        if (
+            model_status == hp.HighsModelStatus.kOptimal
+            or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
+        ):
             obj_value = self.model2.getObjectiveValue()
-            
+
             # Initialisation des structures de retour
             x_ikt_solution = [[] for _ in range(len(self.I2))]
             y_it_solution = [[0.0 for _ in self.T] for _ in self.I2]
@@ -975,27 +994,43 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
             r_solution = {}
             s_solution = {}
 
-            for i in self.I2:
-                # Extraction x (format liste de tuples pour les activations)
-                for k_idx, k in enumerate(self.K_i[i]):
-                    for t in k:
-                        val_x = self.model2.variableValue(self.x_ikt[i, k_idx, t])
-                        if val_x > 0.1:
-                            x_ikt_solution[i].append((k_idx, t))
-                
-                for t in self.T:
-                    # Extraction y (format matrice)
-                    y_it_solution[i][t] = self.model2.variableValue(self.y_it[i, t])
-                    
-                    # Extraction p, r, s (format dictionnaire pour calcul subgradient)
-                    p2_val = self.model2.variableValue(self.p2_it[i, t])
-                    p2_solution[(i, t)] = p2_val
-                    
-                    r_val = self.model2.variableValue(self.r_it[i, t])
-                    if r_val > 0.1:
-                        r_solution[(i, t)] = r_val
-                    
-                    s_solution[(i, t)] = self.model2.variableValue(self.s_it[i, t])
+            # Try efficient extraction from solution vector, fallback to variableValue
+            try:
+                solution = self.model2.getSolution().col_value
+
+                for i in self.I2:
+                    for k_idx, k in enumerate(self.K_i[i]):
+                        for t in k:
+                            var = self.x_ikt[i, k_idx, t]
+                            val_x = solution[var.index]
+                            if val_x > 0.1:
+                                x_ikt_solution[i].append((k_idx, t))
+
+                    for t in self.T:
+                        y_it_solution[i][t] = solution[self.y_it[i, t].index]
+                        p2_val = solution[self.p2_it[i, t].index]
+                        p2_solution[(i, t)] = p2_val
+                        r_val = solution[self.r_it[i, t].index]
+                        if r_val > 0.1:
+                            r_solution[(i, t)] = r_val
+                        s_solution[(i, t)] = solution[self.s_it[i, t].index]
+
+            except Exception:
+                for i in self.I2:
+                    for k_idx, k in enumerate(self.K_i[i]):
+                        for t in k:
+                            val_x = self.model2.variableValue(self.x_ikt[i, k_idx, t])
+                            if val_x > 0.1:
+                                x_ikt_solution[i].append((k_idx, t))
+
+                    for t in self.T:
+                        y_it_solution[i][t] = self.model2.variableValue(self.y_it[i, t])
+                        p2_val = self.model2.variableValue(self.p2_it[i, t])
+                        p2_solution[(i, t)] = p2_val
+                        r_val = self.model2.variableValue(self.r_it[i, t])
+                        if r_val > 0.1:
+                            r_solution[(i, t)] = r_val
+                        s_solution[(i, t)] = self.model2.variableValue(self.s_it[i, t])
 
             return obj_value, x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
 
@@ -1005,272 +1040,6 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
             p2_empty = {(i, t): 0.0 for i in self.I2 for t in self.T}
             return float('inf'), [], [], p2_empty, {}, {}
     
-    def sousPB_typeI1_model(self, data, scenario, mu, start_time : float):
-        # ======= MODEL =======
-        model = hp.Highs()
-        model.setOptionValue("output_flag", False)
-
-        # ======= VARIABLES =======
-        # p_it    
-        p1_it = model.addVariables(self.I1, self.T, 
-                                type=hp.HighsVarType.kContinuous, 
-                                lb=0,
-                                name_prefix=f"p_{{i}}_{{t}}")  
-        
-        # ======= OBJECTIVE =======
-        model.setObjective(
-            # production cost
-            sum((self.Cost_it[i][t]*self.D_t[t] - mu[t]) * p1_it[i, t] 
-                for i in self.I1 for t in self.T
-            ),
-            sense=hp.ObjSense.kMinimize
-        )        
-
-        # ======= CONSTRAINTS =======
-        for t in self.T:
-            # (3)
-            for i in self.I1:
-                model.addConstr(
-                    p1_it[i, t] 
-                            <= self.Pmax_1[i][t],
-                    name=f"Pmax1_constraint_i{i}_t{t}"
-                )
-        # ===== EXTRACT SOLUTION =====  
-        model.run()
-        runtime = time.time() - start_time
-
-        # On vérifie si une solution primale exploitable existe (optimale ou faisable)
-        model_status = model.getModelStatus()
-        primal_status = model.getInfo().primal_solution_status
-        if (
-            model_status == hp.HighsModelStatus.kOptimal
-            or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
-        ):
-            obj_value = model.getObjectiveValue()
-            
-            p1_solution = {(i,t): model.variableValue(p1_it[i,t]) for i in self.I1 for t in self.T}
-
-        else:
-            obj_value = -1
-            p1_solution = {(i,t): 0.0 for i in self.I1 for t in self.T}
-
-
-        return obj_value, p1_solution  
-
-    def sousPB_typeI2_model(self, data, scenario, mu, start_time : float):
-        # ======= MODEL =======
-        model = hp.Highs()
-        model.setOptionValue("output_flag", False)
-
-        # ======= VARIABLES =======
-        # y_it
-        y_it = model.addVariables(self.I2, self.T, 
-                                type=hp.HighsVarType.kInteger, 
-                                lb=0, ub=1, 
-                                name_prefix=f"y_{{i}}_{{t}}")
-        # p_it  
-        p2_it = model.addVariables(self.I2, self.T, 
-                                type=hp.HighsVarType.kContinuous, 
-                                lb=0,
-                                name_prefix=f"p_{{i}}_{{t}}")  
-        
-        # r_it
-        r_it = model.addVariables(self.I2, self.T,
-                            type=hp.HighsVarType.kContinuous,
-                            lb=0,
-                            name_prefix="r_{i}_{t}")
-
-        # s_it
-        s_it = model.addVariables(self.I2, self.T,
-                                type=hp.HighsVarType.kContinuous,
-                                lb=0,
-                                name_prefix="s_{i}_{t}")                          
-        
-        max_campaigns = max((len(self.K_i[i]) for i in self.I2), default=0)
-            
-        index_set = [
-        (i, k, t)
-        for i in self.I2
-        for k in range(len(self.K_i[i]))
-        for t in self.K_i[i][k]
-        ]
-
-        x_ikt = model.addVariables(
-            index_set,
-            type=hp.HighsVarType.kInteger,
-            lb=0,
-            ub=1,
-            name_prefix="x_{i}_{k}_{t}"
-        )
-
-        # ======= OBJECTIVE =======
-        model.setObjective(
-            # refueling cost (FIXED)
-            sum(
-                ( 
-                sum(self.RefCost_ik[i][k_idx] *
-                sum(r_it[i, t] for t in self.K_i[i][k_idx])
-                for k_idx in range(len(self.K_i[i])))
-                - sum(mu[t] * p2_it[i, t] for t in self.T)
-                for i in self.I2
-                )
-            ),
-            sense=hp.ObjSense.kMinimize
-        )         
-
-        # ======= CONSTRAINTS =======
-        for t in self.T:
-            # (4)
-            for i in self.I2:
-                model.addConstr(
-                    p2_it[i, t] 
-                            <= self.Pmax_2[i][t] * (1 - y_it[i, t]),
-                    name=f"Pmax2_constraint_i{i}_t{t}"
-                )     
-
-        # stock 
-        for i in self.I2:
-            for t in self.T:
-                if t == 0:
-                    # (5)
-                    model.addConstr(
-                        s_it[i,t] == self.X_i[i] - p2_it[i,t]*self.D_t[t],
-                        name=f"Stock_init_i{i}_t{t}"
-                    )
-                else:
-                    # (6)
-                    model.addConstr(
-                        s_it[i,t] == s_it[i,t-1] - p2_it[i,t]*self.D_t[t] + r_it[i,t],
-                        name=f"Stock_i{i}_t{t}"
-                    )
-
-                # (7)
-                model.addConstr(
-                    s_it[i,t] <= self.Smax_ik[i][0],
-                    name=f"Stock_max_i{i}_t{t}"
-                )
-                # (8)
-                model.addConstr(
-                    s_it[i,t] >= self.Sth_min[i]*0.1,
-                    name=f"Stock_min_i{i}_t{t}"
-                )
-
-                # (9)
-                for k_idx, k in enumerate(self.K_i[i]):
-                    if t in k:
-                        model.addConstr(
-                            r_it[i,t] <= self.Rmax[i][k_idx] * x_ikt[i,k_idx,t],
-                            name=f"Refuel_limit_i{i}_t{t}"
-                        )
-                if t not in self.K_i_simple[i] :
-                    model.addConstr( r_it[i,t] == 0, name=f"Refuel_limit_i2{i}_t{t}")
-
-        
-            for k_idx, k in enumerate(self.K_i[i]):
-                # (10) 
-                model.addConstr(
-                    sum(x_ikt[i,k_idx, t] for t in k) <= 1,
-                    name=f"One_refuel_per_campaign_i{i}_k{k_idx}"
-                )
-                for t in k:
-                    # (13) --> (12) in the report
-                    if t + self.DA_ik[i][k_idx] <= len(self.T):
-                        model.addConstr(
-                            sum(y_it[i, _t] for _t in range(t, t + self.DA_ik[i][k_idx]))
-                            >= # in the avancement_TER it was == 
-                            self.DA_ik[i][k_idx] * x_ikt[i, k_idx, t ],
-                            name=f"Link_y_xx_i{i}_t{t}_k{k_idx}"
-                        )
-                    else:
-                        model.addConstr(x_ikt[i, k_idx, t] == 0, name=f"Forbid_x_{i}_{k_idx}_{t}")
-
-            # (12) --> (11) in the report 
-            model.addConstr(
-                sum(y_it[i,t] for t in self.T) 
-                == 
-                sum (self.DA_ik[i][k_idx] * x_ikt[i,k_idx, t] 
-                    for k_idx, k in enumerate(self.K_i[i]) 
-                    for t in k),
-                name=f"Link_y_x_i{i}"
-            )                       
-
-        # ===== EXTRACT SOLUTION =====
-        model.run()
-        runtime = time.time() - start_time
-
-        print("\n----------------------------------")
-        info = model.getInfo()
-        model_status = model.getModelStatus()
-        print('Status de la résolution par le solveur = ', model.modelStatusToString(model_status))
-        print("Valeur de la fonction objectif = ", model.getObjectiveValue())
-        print("Meilleure borne inférieure sur la valeur de la fonction objectif: ", info.mip_dual_bound)
-        print("Gap: ", info.mip_gap)
-        print("# de noeuds explorés: ", info.mip_node_count)
-        print("Temps de résolution (en secondes) = ", runtime)
-        print("----------------------------------")
-
-        # On vérifie si une solution primale exploitable existe (optimale ou faisable)
-        model_status = model.getModelStatus()
-        primal_status = model.getInfo().primal_solution_status
-        if (
-            model_status == hp.HighsModelStatus.kOptimal
-            or primal_status == hp.SolutionStatus.kSolutionStatusFeasible
-        ):
-            # obj_value = model.getObjectiveValue()
-            # x_ikt_solution = [[] for _ in range(len(self.I2))]
-            # for i in self.I2 :
-            #     for k_idx, k in enumerate(self.K_i[i]) :
-            #         for t in k :
-            #             if model.variableValue(x_ikt[i,k_idx, t]) > 0.1 :
-            #                 x_ikt_solution[i].append((k_idx, t))
-                   
-            # # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
-            # y_it_solution = [[model.variableValue(y_it[i,t]) for t in self.T] for i in range(len(self.I2))]
-            # # y_it_solution = {(i,t): model.variableValue(y_it[i,t]) for i in self.I2 for t in self.T}
-            # p2_solution = {(i,t): model.variableValue(p2_it[i,t]) for i in self.I2 for t in self.T}
-            # r_solution = {(i,t): model.variableValue(r_it[i,t]) for i in self.I2 for t in self.T if model.variableValue(r_it[i,t]) > 0.1}
-            # s_solution = {(i,t): model.variableValue(s_it[i,t]) for i in self.I2 for t in self.T}
-            obj_value = model.getObjectiveValue()
-            
-            solution = model.getSolution().col_value
-
-            x_ikt_solution = {
-                (i, k_idx, t): solution[var.index]
-                for (i, k_idx, t), var in x_ikt.items()
-            }
-
-            y_it_solution = {
-                (i, t): solution[var.index]
-                for (i, t), var in y_it.items()
-            }
-
-            p2_solution = {
-                (i, t): solution[var.index]
-                for (i, t), var in p2_it.items()
-            }
-
-            r_solution = {
-                (i, t): solution[var.index]
-                for (i, t), var in r_it.items()
-                if solution[var.index] > 0.1
-            }
-
-            s_solution = {
-                (i, t): solution[var.index]
-                for (i, t), var in s_it.items()
-            }
-
-        else:
-            obj_value = -1
-            x_ikt_solution = {(i, k_idx, t): 0.0 for i in self.I2 for k_idx in range(len(self.K_i[i])) for t in self.K_i[i][k_idx]}
-            y_it_solution = {(i,t): 0.0 for i in self.I2 for t in self.T}
-            p2_solution = {(i,t): 0.0 for i in self.I2 for t in self.T}
-            r_solution = {}
-            s_solution = {(i,t): float(self.X_i[i]) for i in self.I2 for t in self.T}
-
-        return obj_value, x_ikt_solution, y_it_solution, p2_solution, r_solution, s_solution
-
-
     def dualLag_function(self, mu, data, scenario):
         total = 0.0
         valP1 , p1_sol = self.sousPB_typeI1_modelv(mu)
@@ -1298,11 +1067,10 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         best_Dualvalue = -float("inf")
       
         p1_best, p2_best, x_best, y_best, r_best, s_best = None , None , None , None , None , None 
-        # history = [] # to track
 
         iteration = 0
         
-        while iteration < max_iterations or time.time() - time_start < 100: #step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
+        while iteration < max_iterations and time.time() - time_start < 300: #step_size > min_step_size and (max_iterations is None or iteration < max_iterations):
             # solve Lagrangian subproblem
             dual_value, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.dualLag_function(mu, data, scenario)
 
@@ -1325,11 +1093,6 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
             # update step
             step_size = step_size * alpha
 
-            # update the history
-            # history.append({
-            #     "dual_value": dual_value,
-            #     "mu": np.copy(mu)
-            # })
             print(f"Iteration {iteration}: Dual Value = {dual_value}")
             iteration += 1
 
@@ -1342,13 +1105,10 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         except ImportError:
             from checker import CheckerL        
 
-        # self.set_data_attrs(data, scenario)
-
         start_time = time.time()
         mu_initial = [0 for t in self.T]
 
         best_Dualvalue, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.subgradient_basic( data, scenario, start_time, mu_initial, 0.8)
-
 
         y_it_solution_sousPB2_ = {
             (i, t): 1
@@ -1363,14 +1123,12 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
         }
         sol_sousPB_list = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_] 
         to = time.time() - start_time
-        sol_sousPB =Solution("HEURISTIC_3_DICHOTOMY_Dual", best_Dualvalue, 0, to , sol_sousPB_list)
+        sol_sousPB =Solution("HEURISTIC_3_relaxLagrange_Dual", best_Dualvalue, 0, to , sol_sousPB_list)
 
         if CheckerL(data, sol_sousPB, scenario):
             return sol_sousPB
             
-        else :
-            # list to dict 
-            
+        else :          
             # inherited LP production plan
             production_plan = self.computeProductionPlanLP(
                 data, scenario, y_sol, x_sol, start_time
@@ -1378,5 +1136,112 @@ class MaintenanceHeuristic_relaxLagrange(MaintenanceHeuristic_basic):
             obj_value, dual_bound, lp_runtime, status, p1_sol, p2_sol, r_sol, s_sol = production_plan
             sol = [p1_sol, p2_sol, y_it_solution_sousPB2_, r_sol, s_sol, x_ikt_solution_sousPB2_]
 
-            return Solution("HEURISTIC_3_DICHOTOMY_Realisable", obj_value, dual_bound, lp_runtime, sol), sol_sousPB
+            return Solution("HEURISTIC_3_relaxLagrange_Realisable", obj_value, dual_bound, lp_runtime, sol), sol_sousPB
           
+class MaintenanceHeuristic_relaxLP_relaxLag_milp(MaintenanceHeuristic_relaxLagrange):
+    """
+    Pipeline:
+    1- Solve Lagrangian dual with LP-relaxed subproblem P2 (continuous y, x)
+    2- Reconstruct a feasible integer solution using an exact re-projection (MILP-style fix + LP production)
+    """
+    def __init__(self, data, scenario):
+        super().__init__(data, scenario)
+        self.set_data_attrs(data, scenario)
+        if self.I1 is None or self.T is None:
+            raise ValueError("Les ensembles I1 ou T ne sont pas initialisés par la classe parente !")
+        self.model1 = hp.Highs()
+        self.model1.setOptionValue("output_flag", False)
+        
+        self.model2 = hp.Highs()
+        self.model2.setOptionValue("output_flag", False)
+
+        # ======= VARIABLES SOUS-PROBLÈME 1 =======
+        self.p1_it = self.model1.addVariables(self.I1, self.T, 
+                                type=hp.HighsVarType.kContinuous, lb=0)
+
+        # ======= VARIABLES SOUS-PROBLÈME 2 =======
+        self.y_it = self.model2.addVariables(self.I2, self.T, 
+                                type=hp.HighsVarType.kContinuous, lb=0, ub=1)
+        self.p2_it = self.model2.addVariables(self.I2, self.T, 
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        self.r_it = self.model2.addVariables(self.I2, self.T,
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        self.s_it = self.model2.addVariables(self.I2, self.T,
+                                type=hp.HighsVarType.kContinuous, lb=0)
+        
+        index_set_x = [(i, k, t) for i in self.I2 for k in range(len(self.K_i[i])) for t in self.K_i[i][k]]
+        self.x_ikt = self.model2.addVariables(index_set_x, type=hp.HighsVarType.kContinuous, lb=0, ub=1)
+
+        # ======= CONTRAINTES STATIQUES (NE CHANGENT JAMAIS) =======
+        self._build_static_constraints()
+
+    def _extract_integer_schedule(self, x_sol):
+        """
+        Convert fractional x into a deterministic integer schedule:
+        pick best start time per campaign (argmax rule).
+        """
+        x_ikt_int = [[] for _ in self.I2]
+        y_it_int = [[0 for _ in self.T] for _ in self.I2]
+
+        for i in self.I2:
+            campaigns = self.K_i[i]
+            for k_idx, campaign in enumerate(campaigns):
+                best_t = None
+                best_val = -1
+
+                for t in campaign:
+                    val = x_sol[i][k_idx][t] if isinstance(x_sol[i][k_idx], dict) else x_sol[i][k_idx].get(t, 0)
+                    if val > best_val:
+                        best_val = val
+                        best_t = t
+
+                if best_t is not None:
+                    x_ikt_int[i].append((k_idx, best_t))
+                    duration = self.DA_ik[i][k_idx]
+                    for tt in range(best_t, min(best_t + duration, len(self.T))):
+                        y_it_int[i][tt] = 1
+
+        return y_it_int, x_ikt_int
+
+    def solve(self, data, scenario):
+        start_time = time.time()
+
+        mu0 = [0.0 for _ in self.T]
+
+        _, p1_sol, p2_sol, x_sol, y_sol, r_sol, s_sol = self.subgradient_basic(data, scenario, start_time, mu0, 0.8)
+
+        # reshape x_sol into indexed structure if needed
+        x_struct = []
+        for i in self.I2:
+            campaigns_i = []
+            for k_idx, campaign in enumerate(self.K_i[i]):
+                campaigns_i.append({t: 0.0 for t in campaign})
+            x_struct.append(campaigns_i)
+
+        for i_idx, i in enumerate(self.I2):
+            for k_idx, t in x_sol[i_idx]:
+                x_struct[i_idx][k_idx][t] = 1.0
+
+        # exact re-projection (integer schedule)
+        y_it_int, x_ikt_int = self._extract_integer_schedule(x_struct)
+
+        # production re-optimization (LP with fixed schedule)
+        production = self.computeProductionPlanLP( data, scenario, y_it_int, x_ikt_int, start_time)
+
+        obj_value, dual_bound, lp_runtime, status, p1, p2, r, s = production
+
+        y_sol = {
+            (i, t): 1
+            for i in range(len(self.I2))
+            for t in self.T
+            if y_it_int[i][t] == 1
+        }
+        sol = [
+            p1, p2,
+            y_sol,
+            r, s,
+            {(i, k, t): 1 for i in range(len(self.I2))
+                         for (k, t) in x_ikt_int[i]}
+        ]
+
+        return Solution("HEURISTIC_relaxLP_relaxLag_MILP", obj_value, dual_bound, lp_runtime, sol)

@@ -205,3 +205,32 @@ def heuristic_relaxLagrange_demo(file_name: str, scheme:int, optimal_value: floa
         print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")
 
     return data, sol
+
+def heuristic_relaxLP_relaxLag_MILP_demo(file_name: str, scheme:int, optimal_value: float = None):
+    try:
+        from .data import Readingfile
+        from .checker import Checker
+        from .solution import print_solution
+        from .heristiques import MaintenanceHeuristic_relaxLP_relaxLag_milp
+    except ImportError:
+        from data import Readingfile
+        from checker import Checker
+        from solution import print_solution
+        from heristiques import MaintenanceHeuristic_relaxLP_relaxLag_milp
+
+    print("Running heuristic relaxLP_relaxLagrange_milp on instance:", file_name, "with scenario", scheme)
+    data_file = Path(__file__).resolve().parents[1] / "data" / "Base_A" / file_name
+    data = Readingfile(str(data_file))
+    
+    heuristic = MaintenanceHeuristic_relaxLP_relaxLag_milp(data, scheme)
+    sol = heuristic.solve(data, scheme)
+
+    if sol is None:
+        print("Heuristic failed: no feasible solution found.")
+        return
+
+    print_solution(sol)
+    Checker(data, sol, scheme)
+    if optimal_value is not None:
+        gap = gapEntreOptHeuriEtMILP(optimal_value, sol._obj_value)
+        print(f"Gap between optimal and heuristic solutions: {gap:.2f}%")

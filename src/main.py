@@ -1,7 +1,6 @@
-from demo import (model_demo, heuristic_basic_demo, 
-    heuristic_basic_demo, heuristic_multiCamp_demo, 
-    heuristic_optXandY_demo, heuristic_RF_demo, 
-    heuristic_relaxLagrange_demo
+from demo import (model_demo, heuristic_basic_demo, heuristic_basic_demo, 
+    heuristic_multiCamp_demo, heuristic_optXandY_demo, heuristic_RF_demo, 
+    heuristic_relaxLagrange_demo, heuristic_relaxLP_relaxLag_MILP_demo, 
     )
 from helperPlots import (
     draw_cumulative_production_stack,
@@ -18,22 +17,22 @@ from helperPlots import (
 ### data5 has 30 scenatios
 TEST_CASES = {
     # ("FileName", Scenario): OptimalValue
-    # ("toy.txt", 0): 63274200.0,
+    ("toy.txt", 0): 63274200.0,
     ("toyy.txt", 0): 58651800.0,
-    # ("data0.txt", 0): 8610050657314.8,
-    # ("data0.txt", 1): 8846806435123.2,
-    # ("data1.txt", 0): 170492782000,
-    # ("data1.txt", 1): 165495870429.0952,
-    # ("data1.txt", 2): 162841643956.18933,
-    # ("data1.txt", 3): 150696133283.6359,
-    # ("data1.txt", 4): 210107150010.10928,
-    # ("data2.txt", 0): 1.4727594e+11,
-    # ("data2.txt", 1): 152135839927.7093,
-    # ("data3.txt", 0): 1.39533299e+11,
-    # ("data3.txt", 1): 130381283710.15749,
-    # ("data4.txt", 0): 115765240184.99612,
-    # ("data4.txt", 1): 100585552199.51825,
-    # ("data5.txt", 0): 113322696311.46948,
+    ("data0.txt", 0): 8610050657314.8,
+    ("data0.txt", 1): 8846806435123.2,
+    ("data1.txt", 0): 170492782000,
+    ("data1.txt", 1): 165495870429.0952,
+    ("data1.txt", 2): 162841643956.18933,
+    ("data1.txt", 3): 150696133283.6359,
+    ("data1.txt", 4): 210107150010.10928,
+    ("data2.txt", 0): 1.4727594e+11,
+    ("data2.txt", 1): 152135839927.7093,
+    ("data3.txt", 0): 1.39533299e+11,
+    ("data3.txt", 1): 130381283710.15749,
+    ("data4.txt", 0): 115765240184.99612,
+    ("data4.txt", 1): 100585552199.51825,
+    ("data5.txt", 0): 113322696311.46948,
 }
 
 HEURISTICS = {
@@ -43,6 +42,7 @@ HEURISTICS = {
     "heuristic_optXandY": False,
     "heuristic_RF": False,
     "heuristic_relaxLagrange": False,
+    "heuristic_relaxLP_relaxLag_MILP": True,
 }
 
 def main():
