@@ -486,12 +486,18 @@ class TERPlots:
         - quality_vs_runtime.png
     """
 
-    def __init__(self, milp_tex_file: str, heuristic_tex_file: str):
+    def __init__(
+        self,
+        milp_tex_file: str | None = None,
+        heuristic_tex_file: str = "",
+        relax_lag_tex_file: str = "",
+        relax_lag_file: str = "",
+    ):
         self.milp_tex_file = milp_tex_file
         self.heuristic_tex_file = heuristic_tex_file
-        self.relax_lag_file = str(Path(heuristic_tex_file).resolve().parent / "gap_relaxLag.txt")
+        self.relax_lag_file = relax_lag_tex_file or relax_lag_file
 
-        self.milp_df = None
+        self.milp_df = pd.DataFrame(columns=["Instance", "BD", "MILP_CPU"])
         self.heuristic_df = None
         self.relax_lag_df = None
 
@@ -541,6 +547,10 @@ class TERPlots:
     # =========================================================
 
     def parse_milp_table(self):
+
+        if not self.milp_tex_file:
+            self.milp_df = pd.DataFrame(columns=["Instance", "BD", "MILP_CPU"])
+            return
 
         with open(self.milp_tex_file, "r", encoding="utf-8") as f:
             text = f.read()
@@ -635,15 +645,25 @@ class TERPlots:
                     })
 
         self.heuristic_df = pd.DataFrame(data)
-        # Assign consistent colors for heuristics using matplotlib default cycle
         heuristics = list(self.heuristic_df["Heuristique"].unique()) if not self.heuristic_df.empty else []
-        prop_colors = plt.rcParams.get('axes.prop_cycle').by_key().get('color', [])
-        self.colors = {h: prop_colors[i % len(prop_colors)] for i, h in enumerate(heuristics)}
+        if Path(self.heuristic_tex_file).name == "tableau_LPrelax_Lagrelax.tex" and len(heuristics) >= 2:
+            self.colors = {
+                heuristics[0]: "green",
+                heuristics[1]: "red",
+            }
+        else:
+            # Assign consistent colors for heuristics using matplotlib default cycle
+            prop_colors = plt.rcParams.get('axes.prop_cycle').by_key().get('color', [])
+            self.colors = {h: prop_colors[i % len(prop_colors)] for i, h in enumerate(heuristics)}
 
     def parse_relax_lag_results(self):
 
+        if not self.relax_lag_file:
+            self.relax_lag_df = pd.DataFrame(columns=["Instance", "Gap", "CPU"])
+            return
+
         relax_path = Path(self.relax_lag_file)
-        if not relax_path.exists():
+        if not relax_path.exists() or relax_path.is_dir():
             self.relax_lag_df = pd.DataFrame(columns=["Instance", "Gap", "CPU"])
             return
 
@@ -724,6 +744,10 @@ class TERPlots:
 
     def plot_cpu_comparison(self):
 
+        if self.heuristic_df is None or self.heuristic_df.empty:
+            print("No heuristic data to plot CPU comparisons")
+            return
+
         cpu_df = self.heuristic_df.pivot_table(
             index="Instance",
             columns="Heuristique",
@@ -731,23 +755,17 @@ class TERPlots:
             , aggfunc="first"
         )
 
-        milp_cpu = self.milp_df.set_index("Instance")["MILP_CPU"]
+        if self.milp_df is not None and not self.milp_df.empty:
+            milp_cpu = self.milp_df.set_index("Instance")["MILP_CPU"]
+            cpu_df["MILP"] = milp_cpu
 
-        cpu_df["MILP"] = milp_cpu
-
-        ax = cpu_df.plot(
-            kind="bar",
-            figsize=(14, 6)
-        )
-
-        # set colors for each column (heuristics + MILP)
+        # set colors for each column (heuristics + optional MILP)
         col_colors = []
         for col in cpu_df.columns:
             if col == "MILP":
                 col_colors.append('gray')
             else:
                 col_colors.append(self.colors.get(col, None))
-        # replot with colors to ensure consistent palette
         ax = cpu_df.plot(kind="bar", figsize=(14,6), color=col_colors)
 
         ax.set_yscale("log")
@@ -794,6 +812,7 @@ class TERPlots:
                 subset["Gap"],
                 s=80,
                 label=h if h not in legend_seen else None,
+                color=self.colors.get(h, None),
                 alpha=0.65,
                 edgecolors='none',
                 zorder=10
@@ -855,7 +874,8 @@ class TERPlots:
 
     def generate_all_plots(self):
 
-        self.parse_milp_table()
+        if self.milp_tex_file:
+            self.parse_milp_table()
         self.parse_heuristic_table()
         self.parse_relax_lag_results()
 
@@ -1237,8 +1257,10 @@ def main():
     base_dir = Path(__file__).resolve().parent
     output_dir = base_dir.parent / "output"
     plots = TERPlots(
-        milp_tex_file=str(output_dir / "tableau_milp_resultats.tex"),
-        heuristic_tex_file=str(output_dir / "tableaux_heur_resultats.tex")
+        # milp_tex_file=str(output_dir / "tableau_milp_resultats.tex"),
+        heuristic_tex_file=str(output_dir / "tableau_LPrelax_Lagrelax.tex"),
+        # heuristic_tex_file=str(output_dir / "tableaux_heur_resultats.tex"),
+        # relax_lag_tex_file=str(output_dir / "gap_relaxLag.txt")
     )
     plots.generate_all_plots()    
 
